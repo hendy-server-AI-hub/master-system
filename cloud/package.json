@@ -1,0 +1,8 @@
+{
+  "name": "hendy-hades-cloud",
+  "version": "6.1.0",
+  "private": true,
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}
