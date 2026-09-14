@@ -42,19 +42,20 @@ app.get('/', (req, res) => {
 });
 
 // ==========================================
-// 🌟 BỘ NHỚ LƯU TRỮ ĐÁM MÂY & DATABASE
+// 🗄️ QUẢN LÝ DATABASE (USERS & ORDERS)
 // ==========================================
-const CloudState = {
-    tabs: {},       // Lưu thông tin tất cả các Tab đang sống
-    accounts: {},   // Lưu danh sách tài khoản sếp đã nạp vào
-    globalCmd: {}   // Lưu các lệnh cấu hình (Cú pháp, tỷ lệ cướp...)
-};
-
 const DB_FILE = path.join(__dirname, 'database.json');
 let users = {};
 let orders = {};
 let adminSession = {}; 
 let bot = null;
+
+// 🌟 BỘ NHỚ LƯU TRỮ ĐÁM MÂY (CLOUD BRAIN) 🌟
+const CloudState = {
+    tabs: {},       // Lưu thông tin tất cả các Tab đang sống
+    accounts: {},   // Lưu danh sách tài khoản sếp đã nạp vào
+    globalCmd: {}   // Lưu các lệnh cấu hình (Cú pháp, tỷ lệ cướp...)
+};
 
 const DEFAULT_LINKED_ACCOUNTS = {
     SC88: [],
@@ -323,7 +324,7 @@ class AISessionManager {
 const aiEngine = new AISessionManager(10);
 
 // ==========================================
-// 🌟 AI PHÂN PHÁT TÀI KHOẢN (CLOUD BRAIN ASSIGNMENT)
+// 🌟 AI PHÂN PHÁT TÀI KHOẢN (CLOUD BRAIN)
 // ==========================================
 function distributeAccounts() {
     let availableAccs = Object.values(CloudState.accounts);
@@ -832,17 +833,18 @@ function startBot(token) {
 }
 
 // ==========================================
-// 🔌 WEBSOCKET SERVER REALTIME CONNECTION
+// 🔌 WEBSOCKET SERVER REALTIME CONNECTION (CLOUD BRAIN)
 // ==========================================
 wss.on('connection', (ws, req) => {
     ws.id = "TAB_" + Math.random().toString(36).substr(2, 9);
     ws.isAlive = true;
-    console.log(`[+] Đàn em gia nhập hệ thống Dashboard: ${ws.id}`);
+    console.log(`[+] Đàn em gia nhập hệ thống: ${ws.id}`);
 
     let totalUsers = Object.keys(users).length;
     let totalBalance = 0;
     Object.values(users).forEach(u => { totalBalance += (u.balance || 0); });
 
+    // Gửi dữ liệu khởi tạo Dashboard
     ws.send(JSON.stringify({
         type: 'INIT_DATA',
         totalUsers: totalUsers,
@@ -860,35 +862,45 @@ wss.on('connection', (ws, req) => {
         try {
             const data = JSON.parse(message);
             
-            // Xác thực Secret Token nếu client gửi kèm
+            // 0. Xác thực Secret Token nếu client gửi kèm
             if (data.token && data.token !== SYSTEM_SECRET_TOKEN) {
                 ws.send(JSON.stringify({ action: 'ERROR', message: 'Sai Secret Token bảo mật!' }));
                 return;
             }
 
-            if (data.action === 'PING') {
+            // 1. Phản hồi lệnh PING từ client để đo độ trễ (Latency)
+            if (data.action === 'PING' || data.type === 'PING') {
                 ws.send(JSON.stringify({ type: 'PONG', timestamp: data.timestamp || data.time }));
                 return;
             }
 
+            // 2. Nếu Đàn Em khai báo danh tính -> Lưu vào Não Bộ
             if (data.action === 'TAB_HEARTBEAT') {
                 CloudState.tabs[ws.id] = data.info;
                 return;
             }
 
+            // 3. Nếu Trạm Mẹ gửi danh sách Tài khoản -> Server làm "Nhà Cái" lưu trữ
             if (data.action === 'UPDATE_ACCOUNTS_POOL') {
                 CloudState.accounts = data.pool;
                 console.log(`[💾 CLOUD SAVED] Đã nhận ${Object.keys(CloudState.accounts).length} tài khoản từ Trạm Mẹ.`);
                 distributeAccounts();
                 return;
             }
-        } catch (e) {
-            console.error('[!] Lỗi băng thông WS:', e.message);
+
+            // 4. BROADCAST: Phóng lệnh đi tốc độ ánh sáng cho các Tab khác
+            wss.clients.forEach((client) => {
+                if (client !== ws && client.readyState === WebSocket.OPEN) {
+                    client.send(JSON.stringify(data));
+                }
+            });
+        } catch (err) {
+            console.error('[!] Lỗi băng thông:', err.message);
         }
     });
 
     ws.on('close', () => {
-        console.log(`[-] Dashboard / Đàn em ngắt mạng: ${ws.id}`);
+        console.log(`[-] Đàn em ngắt mạng: ${ws.id}`);
         delete CloudState.tabs[ws.id];
     });
 });
@@ -910,10 +922,10 @@ wss.on('close', () => clearInterval(interval));
 // ==========================================
 // 🚀 KHỞI CHẠY SERVER
 // ==========================================
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, () => {
     loadDatabase();
     startBot(BOT_TOKEN);
     console.log(`========================================`);
-    console.log(`👑 BỘ NÃO HENDY V5.0 & V6100 ĐANG CHẠY CỔNG ${PORT}`);
+    console.log(`👑 MASTER CONTROL PANEL V6100 CHẠY CỔNG ${PORT}`);
     console.log(`========================================`);
 });
