@@ -1,0 +1,9 @@
+{
+  "name": "master-system-v6100",
+  "version": "6.1.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "cloud"
+  ]
+}
