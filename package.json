@@ -1,9 +1,13 @@
 {
-  "name": "master-system-v6100",
+  "name": "hendy-hades-cloud",
   "version": "6.1.0",
-  "private": true,
-  "workspaces": [
-    "backend",
-    "cloud"
-  ]
+  "description": "Master Control Panel - Hendy & Hades V6100 System on Cloudflare",
+  "main": "src/worker.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^3.114.0"
+  }
 }
