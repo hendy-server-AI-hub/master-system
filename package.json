@@ -1,13 +1,20 @@
 {
-  "name": "hendy-hades-cloud",
+  "name": "master-system-hades",
   "version": "6.1.0",
-  "description": "Master Control Panel - Hendy & Hades V6100 System on Cloudflare",
-  "main": "src/worker.js",
+  "description": "Master Control Panel - Hendy & Hades V6100 System",
+  "main": "server.js",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "start": "node server.js"
   },
-  "devDependencies": {
-    "wrangler": "^3.114.0"
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "node-telegram-bot-api": "^0.64.0",
+    "puppeteer": "^21.5.0",
+    "ws": "^8.14.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
