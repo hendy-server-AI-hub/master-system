@@ -1,78 +1,62 @@
 export default {
-  async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-
-    // Endpoint nhận lệnh từ Telegram hoặc Dashboard muốn cào dữ liệu bằng Puppeteer
-    if (url.pathname.startsWith('/telegram-webhook')) {
-      if (request.method !== 'POST') {
-        return new Response('Method not allowed', { status: 405 });
-      }
-
-      try {
-        const update = await request.json();
-        
-        if (update.message && update.message.text) {
-          const chatId = update.message.chat.id;
-          const text = update.message.text;
-          const botToken = env.BOT_TOKEN;
-
-          // Kiểm tra nếu người dùng gõ lệnh cào dữ liệu (ví dụ: /crawl <url>)
-          if (text.startsWith('/crawl')) {
-            const targetUrl = text.split(' ')[1]; // Lấy URL cần cào phía sau lệnh
-
-            if (!targetUrl) {
-              await sendTelegramMessage(botToken, chatId, "⚠️ Vui lòng nhập URL cần cào, ví dụ: /crawl https://example.com");
-              return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
-            }
-
-            // Gửi thông báo đang xử lý
-            await sendTelegramMessage(botToken, chatId, `🔄 Đang chuyển yêu cầu sang Backend Express để chạy Puppeteer cào dữ liệu từ: ${targetUrl}...`);
-
-            // --- GỌI SANG BACKEND EXPRESS ---
-            try {
-              const backendResponse = await fetch(`${env.BACKEND_API_URL}/api/smm/run-puppeteer`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'X-Internal-Secret': env.INTERNAL_SECRET // Khóa bảo mật giữa Worker và Backend
-                },
-                body: JSON.stringify({ targetUrl, chatId })
-              });
-
-              const backendResult = await backendResponse.json();
-
-              if (!backendResponse.ok) {
-                throw new Error(backendResult.error || 'Backend Express gặp lỗi khi chạy Puppeteer.');
-              }
-
-              // Phản hồi kết quả cào được về Telegram
-              await sendTelegramMessage(botToken, chatId, `✅ Cào dữ liệu thành công!\nKết quả: ${JSON.stringify(backendResult.data).substring(0, 300)}...`);
-
-            } catch (err) {
-              await sendTelegramMessage(botToken, chatId, `❌ Lỗi kết nối Backend Express: ${err.message}`);
-            }
-
-          } else {
-            // Phản hồi lệnh thông thường khác
-            await sendTelegramMessage(botToken, chatId, `[Hendy & Hades V6100 Cloud] Đã nhận lệnh: "${text}"`);
-          }
+    async fetch(request, env, ctx) {
+        // Chỉ chấp nhận phương thức POST để gửi đơn hàng
+        if (request.method !== 'POST') {
+            return new Response(JSON.stringify({ 
+                success: false, 
+                error: 'Method not allowed. Please use POST.' 
+            }), {
+                status: 405,
+                headers: { 'Content-Type': 'application/json' }
+            });
         }
 
-        return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
-      } catch (err) {
-        return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: { 'Content-Type': 'application/json' } });
-      }
+        try {
+            // Đọc dữ liệu JSON gửi lên từ khách hàng hoặc giao diện Panel
+            const orderData = await request.json();
+            
+            // Kiểm tra các trường dữ liệu cơ bản bắt buộc
+            const { service_type, target_url, quantity, customer_id } = orderData;
+            
+            if (!service_type || !target_url || !quantity) {
+                return new Response(JSON.stringify({ 
+                    success: false, 
+                    error: 'Thiếu thông tin đơn hàng (service_type, target_url, quantity).' 
+                }), {
+                    status: 400,
+                    headers: { 'Content-Type': 'application/json' }
+                });
+            }
+
+            // --- TÙY CHỌN: Đẩy đơn hàng vào Redis hoặc Database ---
+            // Nếu bạn dùng Cloudflare KV hoặc kết nối Redis bên ngoài qua REST API, 
+            // bạn có thể lưu trữ đơn hàng tại đây trước khi Worker Python đến lấy.
+            // Ví dụ lưu vào Cloudflare KV (nếu đã cấu hình trong wrangler.toml):
+            // await env.ORDERS_KV.put(`order_${Date.now()}`, JSON.stringify(orderData));
+
+            // Phản hồi lại cho client rằng đã tiếp nhận đơn hàng thành công
+            return new Response(JSON.stringify({
+                success: true,
+                message: 'Đã tiếp nhận đơn hàng thành công!',
+                order_info: {
+                    service: service_type,
+                    target: target_url,
+                    quantity: quantity,
+                    received_at: new Date().toISOString()
+                }
+            }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+        } catch (err) {
+            return new Response(JSON.stringify({ 
+                success: false, 
+                error: 'Lỗi xử lý dữ liệu JSON: ' + err.message 
+            }), {
+                status: 400,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
     }
-
-    return new Response('Hendy & Hades V6100 Edge Worker Active', { headers: { 'Content-Type': 'text/plain' } });
-  }
 };
-
-// Hàm phụ trợ gửi tin nhắn Telegram
-async function sendTelegramMessage(token, chatId, text) {
-  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text })
-  });
-}
