@@ -338,7 +338,7 @@
             }
         }
 
-// Global State (Đã xóa dữ liệu mẫu)
+        // Global State (Trống ban đầu, nhận dữ liệu thực từ WS)
         let appData = {
             botAccounts: [],
             aiSessions: [],
@@ -373,13 +373,20 @@
                 try {
                     const msg = JSON.parse(event.data);
                     if (msg.type === 'INIT_DATA') {
-                        appData = { ...appData, ...msg.data };
+                        appData.users = msg.users || msg.data?.users || {};
+                        appData.orders = msg.orders || msg.data?.orders || [];
                         renderAll();
                     } else if (msg.type === 'NEW_SMM_ORDER') {
-                        addChatLog(`Khách ${msg.user.name} vừa đặt đơn ${msg.order.id} (${msg.order.serviceName})`);
+                        const userName = msg.user?.name || msg.order?.userName || 'Khách';
+                        const orderId = msg.order?.id || '';
+                        const serviceName = msg.order?.serviceName || msg.order?.service || 'Dịch vụ';
+                        addChatLog(`Khách ${userName} vừa đặt đơn ${orderId} (${serviceName})`);
                         if (msg.order) appData.orders.unshift(msg.order);
                         renderOrdersTable();
                         updateStats();
+                    } else if (msg.type === 'ORDERS_UPDATED') {
+                        if (msg.orders) appData.orders = msg.orders;
+                        renderOrdersTable();
                     } else if (msg.type === 'PONG') {
                         const ping = Date.now() - msg.timestamp;
                         const pingEl = document.getElementById('pingValue');
@@ -431,6 +438,10 @@
         function renderBotTable() {
             const tbody = document.getElementById('botTableBody');
             if (!tbody) return;
+            if (!appData.botAccounts || appData.botAccounts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-gray-500 italic">Chưa có bot nào được khởi tạo.</td></tr>';
+                return;
+            }
             tbody.innerHTML = appData.botAccounts.map(b => `
                 <tr class="hover:bg-darker/50 transition">
                     <td class="p-3.5 font-mono text-xs">${b.id}</td>
@@ -448,7 +459,7 @@
             if (countEl) countEl.innerText = appData.aiSessions.length;
             if (!grid) return;
 
-            if (appData.aiSessions.length === 0) {
+            if (!appData.aiSessions || appData.aiSessions.length === 0) {
                 grid.innerHTML = '<div class="text-gray-500 text-sm italic col-span-full py-2">Hệ thống đang rảnh, không có phiên AI nào đang kích hoạt.</div>';
                 return;
             }
@@ -459,10 +470,10 @@
                         <span class="text-xs font-bold text-emerald-400 font-mono">${s.id}</span>
                         <span class="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-800">${s.status}</span>
                     </div>
-                    <div class="text-xs font-medium text-white truncate">${s.name}</div>
-                    <div class="text-[11px] text-gray-400 truncate">Target: ${s.target}</div>
+                    <div class="text-xs font-medium text-white truncate">${s.name || s.orderId}</div>
+                    <div class="text-[11px] text-gray-400 truncate">Target: ${s.target || s.targetLink}</div>
                     <div class="w-full bg-darker h-1.5 rounded-full overflow-hidden">
-                        <div class="bg-emerald-500 h-full" style="width: ${s.speed || '80%'}"></div>
+                        <div class="bg-emerald-500 h-full" style="width: ${s.progress || s.speed || 0}%"></div>
                     </div>
                 </div>
             `).join('');
@@ -471,13 +482,17 @@
         function renderOrdersTable() {
             const tbody = document.getElementById('ordersTableBody');
             if (!tbody) return;
+            if (!appData.orders || appData.orders.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-500 italic">Chưa có đơn hàng SMM nào trong hệ thống.</td></tr>';
+                return;
+            }
             tbody.innerHTML = appData.orders.map(o => `
                 <tr class="hover:bg-darker/50 transition">
                     <td class="px-4 py-3 font-mono text-emerald-400 font-semibold">${o.id}</td>
-                    <td class="px-4 py-3 text-white">${o.user || 'N/A'}</td>
-                    <td class="px-4 py-3 text-gray-300">${o.service}</td>
+                    <td class="px-4 py-3 text-white">${o.userName || o.user || 'N/A'}</td>
+                    <td class="px-4 py-3 text-gray-300">${o.serviceName || o.service}</td>
                     <td class="px-4 py-3 font-mono text-xs text-sky-400 truncate max-w-[180px]">${o.link}</td>
-                    <td class="px-4 py-3 font-mono font-bold text-amber-400">${(o.qty || 0).toLocaleString()}</td>
+                    <td class="px-4 py-3 font-mono font-bold text-amber-400">${(o.quantity || o.qty || 0).toLocaleString()}</td>
                     <td class="px-4 py-3"><span class="px-2.5 py-1 bg-sky-950 text-sky-400 text-xs rounded-full border border-sky-800">${o.status}</span></td>
                 </tr>
             `).join('');
@@ -505,7 +520,7 @@
             tbody.innerHTML = users.map(([id, u]) => `
                 <tr class="hover:bg-darker/50 transition">
                     <td class="p-3.5 font-mono text-gray-400">${id}</td>
-                    <td class="p-3.5 text-white font-medium">${u.name}</td>
+                    <td class="p-3.5 text-white font-medium">${u.name || 'Khách'}</td>
                     <td class="p-3.5 text-amber-400 font-mono font-semibold">${(u.balance || 0).toLocaleString()} đ</td>
                     <td class="p-3.5 font-mono text-gray-300">${u.orders ? u.orders.length : 0}</td>
                 </tr>
@@ -519,7 +534,7 @@
             const statOrders = document.getElementById('statOrders');
 
             if (statUsers) statUsers.innerText = users.length;
-            if (statOrders) statOrders.innerText = appData.orders.length;
+            if (statOrders) statOrders.innerText = appData.orders ? appData.orders.length : 0;
             if (statBalance) {
                 let totalB = 0;
                 users.forEach(u => totalB += (u.balance || 0));
@@ -529,7 +544,12 @@
 
         // Action Handlers
         function runAllBots() { addSysLog('Đã kích hoạt toàn bộ bot & phiên AI.'); }
-        function runAllAI() { addSysLog('AI Engine đang tiến hành phân luồng xử lý toàn bộ đơn SMM.'); }
+        function runAllAI() { 
+            fetch('/api/ai/run-all', { method: 'POST' })
+                .then(r => r.json())
+                .then(res => addSysLog(res.message || 'Đã kích hoạt AI.'))
+                .catch(e => addSysLog('Lỗi kích hoạt AI: ' + e.message));
+        }
         function stopAllBots() { addSysLog('Tạm dừng tất cả các phiên bot đang chạy.'); }
         function addBotAccount() {
             const newId = appData.botAccounts.length + 1;
@@ -546,7 +566,23 @@
             document.getElementById('sysLogBox').innerHTML = '';
             document.getElementById('chatLogBox').innerHTML = '';
         }
-        function exportCSV() { alert('Xuất báo cáo dữ liệu CSV thành công!'); }
+        function exportCSV() {
+            if (!appData.orders || appData.orders.length === 0) {
+                alert('Không có dữ liệu đơn hàng để xuất!');
+                return;
+            }
+            let csvContent = "data:text/csv;charset=utf-8,Mã Đơn,Khách Hàng,Dịch Vụ,Link,Số Lượng,Trạng Thái\n";
+            appData.orders.forEach(o => {
+                csvContent += `${o.id},"${o.userName || o.user || ''}","${o.serviceName || o.service || ''}","${o.link || ''}",${o.quantity || o.qty || 0},${o.status}\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Orders_Report_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
         function syncApiRoutes() { addSysLog('Đồng bộ API Routes thành công.'); }
         function sendWsCommand() {
             const input = document.getElementById('wsCommandInput');
@@ -557,13 +593,21 @@
                 input.value = '';
             }
         }
-        function saveSettings() { alert('Đã lưu cấu hình hệ thống thành công!'); }
+        function saveSettings() { alert('Đã lưu cấu hình hệ thống!'); }
         function sendBroadcast() {
             const msg = document.getElementById('broadcastMsg').value;
             if (!msg) { alert('Vui lòng nhập nội dung thông báo!'); return; }
-            addSysLog(`[BROADCAST] Đã phát thông báo: "${msg}"`);
-            alert('Thông báo đã được gửi đến toàn bộ người dùng Telegram!');
-            document.getElementById('broadcastMsg').value = '';
+            fetch('/api/broadcast', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: msg })
+            })
+            .then(r => r.json())
+            .then(res => {
+                alert(`Broadcast thành công tới ${res.successCount || 0} user!`);
+                document.getElementById('broadcastMsg').value = '';
+            })
+            .catch(e => alert('Lỗi gửi broadcast: ' + e.message));
         }
         function filterBotTable() {
             const q = document.getElementById('botSearch').value.toLowerCase();
