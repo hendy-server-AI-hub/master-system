@@ -338,30 +338,17 @@
             }
         }
 
-        // Global State
+// Global State (Đã xóa dữ liệu mẫu)
         let appData = {
-            botAccounts: [
-                { id: 1, account: 'yg45g', boAccount: 'yg45g', status: 'Đang chạy' },
-                { id: 2, account: 'bot_hades_02', boAccount: 'bo_hades_02', status: 'Sẵn sàng' }
-            ],
-            aiSessions: [
-                { id: 'SESS-101', name: 'Bot-Alpha (TikTok Follow)', target: '@user_test', status: 'Processing', speed: '98%' },
-                { id: 'SESS-102', name: 'Bot-Beta (FB Likes)', target: 'post/882192', status: 'Active', speed: '100%' }
-            ],
+            botAccounts: [],
+            aiSessions: [],
             apiRoutes: [
                 { id: 1, name: 'Auth Gateway', endpoint: '/api/v1/auth', status: 'Active' },
                 { id: 2, name: 'SMM Order Dispatcher', endpoint: '/api/v1/smm/order', status: 'Active' },
                 { id: 3, name: 'Puppeteer Edge Bridge', endpoint: '/api/smm/run-puppeteer', status: 'Active' }
             ],
-            users: {
-                '8812039': { name: 'Nguyễn Văn A', balance: 250000, orders: [1, 2] },
-                '9918231': { name: 'Trần Thị B', balance: 500000, orders: [3] }
-            },
-            orders: [
-                { id: 'SMM-901', service: 'Tăng Follow TikTok Speed', link: 'https://tiktok.com/@demo', qty: 1000, status: 'Đang chạy', user: 'Nguyễn Văn A' },
-                { id: 'SMM-902', service: 'Like Bài Viết Facebook', link: 'https://facebook.com/123456', qty: 500, status: 'Hoàn thành', user: 'Nguyễn Văn A' },
-                { id: 'SMM-903', service: 'View Video Telegram', link: 'https://t.me/channel/10', qty: 5000, status: 'Đang xử lý', user: 'Trần Thị B' }
-            ]
+            users: {},
+            orders: []
         };
 
         // WebSocket Integration
