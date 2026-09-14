@@ -1,20 +1,16 @@
 {
-  "name": "master-system-hades",
-  "version": "6.1.0",
-  "description": "Master Control Panel - Hendy & Hades V6100 System",
-  "main": "server.js",
+  "name": "master-system",
+  "version": "1.0.0",
+  "main": "backend/server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node backend/server.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "node-telegram-bot-api": "^0.64.0",
-    "puppeteer": "^21.5.0",
-    "ws": "^8.14.2"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-telegram-bot-api": "^0.65.0",
+    "puppeteer": "^22.6.0",
+    "ws": "^8.16.0"
   }
 }
