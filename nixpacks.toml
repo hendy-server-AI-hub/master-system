@@ -1,5 +1,8 @@
 [phases.setup]
-nixPkgs = ['chromium', 'nss', 'freetype', 'harfbuzz', 'ca-certificates']
+nixPkgs = ["python311", "python311Packages.pip"]
 
-[env]
-PUPPETEER_EXECUTABLE_PATH = '/usr/bin/chromium'
+[phases.build]
+cmds = ["pip install -r requirements.txt"]
+
+[start]
+cmd = "python server.py"
