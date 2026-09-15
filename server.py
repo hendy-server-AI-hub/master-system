@@ -416,7 +416,7 @@ async def api_broadcast(req: BroadcastRequest):
     message = req.message
     if not message:
         raise HTTPException(status_code=400, detail="Nội dung không được để trống")
-    success, fail = 0, gl_fail = 0, 0
+    success, fail = 0, 0
     if telegram_app and telegram_app.bot:
         for chat_id in users.keys():
             try:
