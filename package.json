@@ -1,4 +1,4 @@
-[source: 2]{
+{
   "name": "master-system",
   "version": "1.0.0",
   "main": "server.js",
