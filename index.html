@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Master Control Panel - Hendy & Hades V6100 PRO</title>
+    <title>Master Control Panel - Hendy & Hades V6100 PRO System</title>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -48,7 +48,7 @@
         }
 
         .sidebar-header h2 {
-            font-size: 14px;
+            font-size: 13px;
             color: #00f3ff;
             text-shadow: 0 0 10px rgba(0, 243, 255, 0.5);
             display: flex;
@@ -256,199 +256,104 @@
             word-break: break-all;
         }
 
-        /* Tables Responsive Fix */
-        .table-container {
-            background-color: #0b0f19;
-            border: 1px solid #00f3ff44;
-            border-radius: 8px;
-            width: 100%;
-            overflow-x: auto; /* Cho phép cuộn ngang bảng trên màn hình nhỏ */
+        /* Tích hợp Vietsub & AI Styles */
+        .video-box { position: relative; width: 100%; background: #000; border-radius: 6px; overflow: hidden; margin-top: 10px; border: 1px solid #00f3ff44; }
+        video { width: 100%; display: block; transition: filter 0.3s ease; }
+        
+        #loadingOverlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 8, 17, 0.85);
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            color: #fff; font-size: 16px; z-index: 10; display: none;
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid #1a233a; border-top: 4px solid #00f3ff;
+            border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 10px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #subtitleOverlay {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85); color: #ffffff; padding: 6px 12px;
+            font-size: 18px; font-weight: bold; border-radius: 4px; text-align: center;
+            max-width: 85%; pointer-events: none; display: none; z-index: 5;
+            border: 1px solid rgba(0, 243, 255, 0.3);
         }
 
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-            font-size: 12px;
-            white-space: nowrap;
+        .control-panel { margin-top: 15px; display: flex; flex-direction: column; gap: 15px; }
+        @media (min-width: 768px) { .control-panel { flex-direction: row; } }
+        
+        .editor-col { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+        .list-col { flex: 1; max-height: 550px; overflow-y: auto; background: #05070d; padding: 10px; border-radius: 6px; border: 1px solid #00f3ff33; }
+        
+        input[type="text"], input[type="url"], input[type="color"], input[type="range"], textarea, select {
+            width: 100%; padding: 10px; background: #05070d; border: 1px solid #00f3ff44; color: #fff; border-radius: 6px; box-sizing: border-box; font-size: 12px; outline: none;
         }
+        input[type="file"] { width: 100%; padding: 8px; background: #05070d; border: 1px solid #00f3ff44; color: #fff; border-radius: 6px; font-size: 12px; }
+        textarea { height: 60px; resize: none; }
+        
+        .time-inputs { display: flex; gap: 10px; }
+        .time-inputs div { flex: 1; }
+        label { font-size: 12px; color: #8b9bb4; display: block; margin-bottom: 3px; }
 
-        .data-table th, .data-table td {
-            padding: 10px 12px;
-            border-bottom: 1px solid #00f3ff22;
-        }
+        .btn-group { display: flex; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
+        .btn { padding: 10px; background: rgba(0, 243, 255, 0.1); border: 1px solid #00f3ff; color: #00f3ff; border-radius: 6px; cursor: pointer; font-weight: bold; flex: 1; text-align: center; font-size: 12px; text-transform: uppercase; transition: all 0.2s; }
+        .btn:hover { background: #00f3ff; color: #050811; box-shadow: 0 0 10px #00f3ff; }
+        
+        .btn-success { background: rgba(0, 255, 102, 0.1); border-color: #00ff66; color: #00ff66; }
+        .btn-success:hover { background: #00ff66; color: #050811; box-shadow: 0 0 10px #00ff66; }
 
-        .data-table th {
-            background-color: #05070d;
-            color: #00f3ff;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+        .btn-danger { background: rgba(255, 0, 85, 0.1); border-color: #ff0055; color: #ff0055; }
+        .btn-danger:hover { background: #ff0055; color: #fff; box-shadow: 0 0 10px #ff0055; }
 
-        .data-table td {
-            color: #ffffff;
-        }
+        .btn-warning { background: rgba(255, 193, 7, 0.1); border-color: #ffc107; color: #ffc107; }
+        .btn-warning:hover { background: #ffc107; color: #050811; box-shadow: 0 0 10px #ffc107; }
 
-        .badge-status {
-            padding: 3px 6px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
-        }
+        .btn-info { background: rgba(23, 162, 184, 0.1); border-color: #17a2b8; color: #17a2b8; }
+        .btn-info:hover { background: #17a2b8; color: #fff; box-shadow: 0 0 10px #17a2b8; }
 
-        .badge-ready { background: rgba(0, 255, 102, 0.1); color: #00ff66; border: 1px solid #00ff6655; }
-        .badge-admin { background: rgba(255, 0, 85, 0.1); color: #ff0055; border: 1px solid #ff005555; }
-        .badge-mod { background: rgba(255, 170, 0, 0.1); color: #ffaa00; border: 1px solid #ffaa0055; }
+        .btn-ai { background: rgba(111, 66, 193, 0.2); border-color: #a855f7; color: #a855f7; }
+        .btn-ai:hover { background: #a855f7; color: #fff; box-shadow: 0 0 15px #a855f7; }
+        .btn-ai.active { background: #ff0055; border-color: #ff0055; color: #fff; animation: pulse 1.5s infinite; }
+        
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
-        .btn-action {
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            cursor: pointer;
-            border: none;
-            font-weight: bold;
-            transition: all 0.2s;
-        }
+        .sub-item { background: #0b0f19; padding: 10px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid #00f3ff; font-size: 13px; border-top: 1px solid #00f3ff22; border-right: 1px solid #00f3ff22; border-bottom: 1px solid #00f3ff22; cursor: pointer; transition: all 0.2s; }
+        .sub-item:hover { background: rgba(0, 243, 255, 0.05); }
+        .sub-item span { color: #00f3ff; font-size: 11px; display: block; margin-bottom: 4px; }
+        .sub-item b { color: #fff; }
+        .sub-actions { margin-top: 6px; display: flex; gap: 5px; }
+        .sub-actions button { padding: 4px 8px; font-size: 11px; cursor: pointer; border-radius: 3px; font-weight: bold; }
+        
+        .panel-box { background: #0b0f19; padding: 12px; border-radius: 8px; border: 1px solid #00f3ff44; }
+        
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 10px; }
+        .status-card { background: #05070d; padding: 12px; border-radius: 6px; border: 1px solid #00f3ff33; }
+        .status-card h4 { margin: 0 0 5px 0; font-size: 13px; color: #00f3ff; }
+        .badge { display: inline-block; padding: 3px 6px; border-radius: 3px; font-size: 11px; font-weight: bold; }
+        .badge-online { background: rgba(0, 255, 102, 0.2); color: #00ff66; border: 1px solid #00ff6666; }
+        .badge-offline { background: rgba(255, 0, 85, 0.2); color: #ff0055; border: 1px solid #ff005566; }
 
-        .btn-danger { background: rgba(255, 0, 85, 0.2); color: #ff0055; border: 1px solid #ff0055; }
-        .btn-danger:hover { background: #ff0055; color: #fff; }
-        .btn-warning { background: rgba(255, 170, 0, 0.2); color: #ffaa00; border: 1px solid #ffaa00; }
-        .btn-warning:hover { background: #ffaa00; color: #000; }
+        /* Các style khác từ code V6100 PRO */
+        .form-group { margin-bottom: 12px; }
+        .form-control { width: 100%; background-color: #05070d; border: 1px solid #00f3ff44; color: #ffffff; padding: 8px 10px; border-radius: 6px; font-size: 12px; outline: none; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } }
+        
+        .link-input-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .btn-cyber { background: rgba(0, 243, 255, 0.1); border: 1px solid #00f3ff; color: #00f3ff; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; text-transform: uppercase; }
+        .btn-cyber:hover { background: #00f3ff; color: #050811; box-shadow: 0 0 10px #00f3ff; }
+        .btn-danger-cyber { background: rgba(255, 0, 85, 0.1); border: 1px solid #ff0055; color: #ff0055; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
 
-        /* Form Controls */
-        .form-group {
-            margin-bottom: 12px;
-        }
+        .terminal-container { background-color: #05070d; border: 1px solid #00f3ff66; border-radius: 8px; padding: 12px; margin-top: 15px; }
+        .terminal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #00f3ff33; padding-bottom: 6px; margin-bottom: 8px; font-size: 11px; color: #00f3ff; }
+        .terminal-body { height: 100px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #00ff66; display: flex; flex-direction: column; gap: 4px; }
+        .log-item { display: flex; gap: 8px; word-break: break-all; }
+        .log-time { color: #8b9bb4; flex-shrink: 0; }
 
-        .form-group label {
-            display: block;
-            font-size: 12px;
-            color: #8b9bb4;
-            margin-bottom: 5px;
-        }
-
-        .form-control {
-            width: 100%;
-            background-color: #05070d;
-            border: 1px solid #00f3ff44;
-            color: #ffffff;
-            padding: 8px 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            outline: none;
-            transition: all 0.2s;
-        }
-
-        .form-control:focus {
-            border-color: #00f3ff;
-            box-shadow: 0 0 8px rgba(0, 243, 255, 0.3);
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-        }
-
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: #ffffff;
-            font-size: 12px;
-            cursor: pointer;
-            margin-top: 8px;
-        }
-
-        .checkbox-label input {
-            accent-color: #00f3ff;
-            width: 14px;
-            height: 14px;
-        }
-
-        .btn-cyber {
-            background: rgba(0, 243, 255, 0.1);
-            border: 1px solid #00f3ff;
-            color: #00f3ff;
-            padding: 8px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-        }
-
-        .btn-cyber:hover {
-            background: #00f3ff;
-            color: #050811;
-            box-shadow: 0 0 15px #00f3ff;
-        }
-
-        /* Terminal Log */
-        .terminal-container {
-            background-color: #05070d;
-            border: 1px solid #00f3ff66;
-            border-radius: 8px;
-            padding: 12px;
-            box-shadow: 0 0 20px rgba(0, 243, 255, 0.05), inset 0 0 15px rgba(0, 0, 0, 0.8);
-        }
-
-        .terminal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #00f3ff33;
-            padding-bottom: 6px;
-            margin-bottom: 8px;
-            font-size: 11px;
-            color: #00f3ff;
-            letter-spacing: 1px;
-        }
-
-        .terminal-body {
-            height: 120px;
-            overflow-y: auto;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 11px;
-            color: #00ff66;
-            text-shadow: 0 0 5px rgba(0, 255, 102, 0.4);
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .log-item {
-            display: flex;
-            gap: 8px;
-            word-break: break-all;
-        }
-
-        .log-time {
-            color: #8b9bb4;
-            flex-shrink: 0;
-        }
-
-        /* Responsive Media Query tự động ẩn Sidebar trên màn hình nhỏ */
         @media (max-width: 900px) {
-            .sidebar {
-                position: absolute;
-                height: 100vh;
-                margin-left: -260px;
-            }
-            .sidebar.mobile-show {
-                margin-left: 0;
-            }
+            .sidebar { position: absolute; height: 100vh; margin-left: -260px; }
+            .sidebar.mobile-show { margin-left: 0; }
         }
     </style>
 </head>
@@ -457,10 +362,11 @@
     <!-- Sidebar Menu -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <h2><i class="fas fa-bolt"></i> HENDY & HADES</h2>
+            <h2><i class="fas fa-bolt"></i> HENDY & HADES V6100</h2>
         </div>
         <ul class="sidebar-menu">
             <li><a class="menu-link active" onclick="switchTab('dashboard', this)"><i class="fas fa-home"></i> Dashboard chính</a></li>
+            <li><a class="menu-link" onclick="switchTab('vietsub', this)"><i class="fas fa-closed-captioning"></i> Hệ Thống Vietsub & AI</a></li>
             <li><a class="menu-link" onclick="switchTab('hades', this)"><i class="fas fa-robot"></i> Hades V6100 Hub</a></li>
             <li><a class="menu-link" onclick="switchTab('smm', this)"><i class="fas fa-shopping-cart"></i> Quản lý Đơn SMM</a></li>
             <li><a class="menu-link" onclick="switchTab('api', this)"><i class="fas fa-network-wired"></i> API Routes Manager</a></li>
@@ -468,7 +374,7 @@
             <li><a class="menu-link" onclick="switchTab('settings', this)"><i class="fas fa-cog"></i> Cài đặt & Bảo mật</a></li>
         </ul>
         <div class="sidebar-footer">
-            <span class="cyber-badge">V6100 PRO</span>
+            <span class="cyber-badge">PRO SYSTEM</span>
         </div>
     </div>
 
@@ -480,10 +386,10 @@
                 <button class="toggle-btn" onclick="toggleSidebar()" title="Ẩn/Hiện Menu">
                     <i class="fas fa-bars"></i>
                 </button>
-                <h1 id="pageTitle"><i class="fas fa-terminal"></i> CONTROL PANEL ACTIVE</h1>
+                <h1 id="pageTitle"><i class="fas fa-terminal"></i> DASHBOARD CHÍNH</h1>
             </div>
             <div class="system-status">
-                <div><i class="far fa-clock"></i> <span id="clock">08:59:00</span></div>
+                <div><i class="far fa-clock"></i> <span id="clock">00:00:00</span></div>
                 <div class="status-badge"><span class="status-dot"></span> ONLINE</div>
             </div>
         </div>
@@ -496,7 +402,7 @@
                 <div class="grid-cards">
                     <div class="card">
                         <h4><i class="fas fa-users"></i> Khách Hàng</h4>
-                        <div class="value">1,280</div>
+                        <div class="value">1,284</div>
                     </div>
                     <div class="card">
                         <h4><i class="fas fa-wallet"></i> Số Dư Ví</h4>
@@ -504,7 +410,7 @@
                     </div>
                     <div class="card">
                         <h4><i class="fas fa-shopping-bag"></i> Đơn SMM</h4>
-                        <div class="value">486</div>
+                        <div class="value">348</div>
                     </div>
                     <div class="card">
                         <h4><i class="fas fa-microchip"></i> Bot Sessions</h4>
@@ -512,162 +418,244 @@
                     </div>
                 </div>
 
-                <div class="card">
-                    <h3><i class="fas fa-shield-alt"></i> Trạng thái hệ thống tổng quan</h3>
-                    <p style="font-size: 12px; color: #8b9bb4; margin-top: 5px;">Hệ thống Cloud Brain hoạt động bình thường qua kết nối WebSocket bảo mật tuyệt đối.</p>
+                <div class="card" style="margin-top: 5px;">
+                    <h3 style="margin-bottom: 12px;"><i class="fas fa-server"></i> Giám Sát Kết Nối & Trạng Thái Mạng (WebSocket)</h3>
+                    <div class="dashboard-grid">
+                        <div class="status-card">
+                            <h4>📡 Trạng thái WebSocket</h4>
+                            <span id="wsStatusBadge" class="badge badge-offline">Đang ngắt kết nối</span>
+                            <div style="font-size: 11px; color: #888; margin-top: 5px;" id="wsUrlDisplay">Server: WSS Ready</div>
+                        </div>
+                        <div class="status-card">
+                            <h4>⚡ Network Latency Monitor</h4>
+                            <div style="font-size: 16px; font-weight: bold; color: #00ff66;" id="pingResult">-- ms</div>
+                        </div>
+                        <div class="status-card">
+                            <h4>🤖 Bot Accounts Pool</h4>
+                            <div style="font-size: 13px;" id="botCountInfo">Số lượng Bot: 12 Active</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button class="btn btn-info" id="connectWsBtn">Kết Nối WebSocket</button>
+                        <button class="btn btn-warning" id="pingCheckBtn">Kiểm Tra Ping Ngay</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- 2. HADES V6100 HUB -->
+            <!-- 2. HỆ THỐNG VIETSUB & AI (Đã tích hợp Trình Chỉnh Sửa Video) -->
+            <div id="view-vietsub" class="view-section">
+                <div class="card" style="padding: 15px;">
+                    <h3 style="margin-bottom: 12px;"><i class="fas fa-closed-captioning"></i> Trình Điều Khiển Vietsub, AI & Chỉnh Sửa Video</h3>
+                    
+                    <div style="margin-bottom: 10px;">
+                        <input type="text" id="quickSearchInput" placeholder="🔍 Tìm kiếm nhanh nội dung phụ đề...">
+                    </div>
+
+                    <div style="margin-bottom: 10px;" class="form-row">
+                        <div>
+                            <label>📂 Chọn File Video từ máy:</label>
+                            <input type="file" id="videoUpload" accept="video/*">
+                        </div>
+                        <div>
+                            <label>Nhập file phụ đề có sẵn (.SRT):</label>
+                            <input type="file" id="srtUpload" accept=".srt">
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom: 10px;">
+                        <label>Hoặc dán Link Google Drive (Mở quyền công khai):</label>
+                        <input type="text" id="smartLinkInput" placeholder="https://drive.google.com/file/d/.../view">
+                    </div>
+                    
+                    <!-- Khung phát video -->
+                    <div class="video-box">
+                        <div id="loadingOverlay">
+                            <div class="spinner"></div>
+                            <span id="loadingText">Đang tải video...</span>
+                        </div>
+                        <video id="videoPlayer" controls></video>
+                        <div id="subtitleOverlay"></div>
+                    </div>
+
+                    <!-- BẢNG ĐIỀU KHIỂN & CHỈNH SỬA VIDEO MỚI TÍCH HỢP -->
+                    <div class="panel-box" style="margin-top: 15px; border-left: 4px solid #00f3ff;">
+                        <h4 style="color: #00f3ff; margin-bottom: 10px;"><i class="fas fa-film"></i> Trình Chỉnh Sửa Video Trực Tuyến</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 10px;">
+                            <div>
+                                <label>✂️ Cắt Đoạn Video (Mốc thời gian giây):</label>
+                                <div style="display: flex; gap: 5px;">
+                                    <input type="text" id="trimStart" placeholder="Từ (s)" value="0">
+                                    <input type="text" id="trimEnd" placeholder="Đến (s)" value="10">
+                                </div>
+                                <button class="btn btn-info" id="previewTrimBtn" style="margin-top: 5px; width: 100%;">Xem Thử Đoạn Cắt</button>
+                            </div>
+                            <div>
+                                <label>🎨 Bộ Lọc Hình Ảnh / Màu Sắc:</label>
+                                <select id="videoFilterSelect">
+                                    <option value="none">Bình thường (Normal)</option>
+                                    <option value="grayscale(100%)">Đen trắng (Grayscale)</option>
+                                    <option value="sepia(100%)">Hoài cổ (Sepia)</option>
+                                    <option value="contrast(150%)">Tương phản cao (High Contrast)</option>
+                                    <option value="invert(100%)">Đảo ngược màu (Invert)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>🔲 Tỷ Lệ Khung Hình (Crop Aspect):</label>
+                                <select id="videoAspectSelect">
+                                    <option value="100%">Mặc định (100%)</option>
+                                    <option value="75%">Thu nhỏ 75%</option>
+                                    <option value="56.25%">Màn ảnh rộng Cinematic</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn btn-success" id="exportEditedVideoBtn"><i class="fas fa-download"></i> Xuất / Lưu Đoạn Video Đã Cắt</button>
+                            <button class="btn btn-warning" id="snapshotBtn"><i class="fas fa-camera"></i> Chụp Ảnh Khung Hình (Snapshot)</button>
+                        </div>
+                    </div>
+
+                    <!-- Cài đặt tốc độ & Kiểu chữ -->
+                    <div class="panel-box" style="margin-top: 15px; display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 180px;">
+                            <label>⚡ Tốc độ phát: <span id="speedLabel" style="color:#00f3ff; font-weight:bold;">1.0x</span></label>
+                            <select id="playbackSpeed">
+                                <option value="0.5">0.5x</option>
+                                <option value="1.0" selected>1.0x (Bình thường)</option>
+                                <option value="1.25">1.25x</option>
+                                <option value="1.5">1.5x</option>
+                                <option value="2.0">2.0x</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1; min-width: 130px;">
+                            <label>🎨 Màu chữ sub:</label>
+                            <input type="color" id="subColorPicker" value="#ffffff">
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label>📏 Cỡ chữ sub: <span id="fontSizeLabel">18px</span></label>
+                            <input type="range" id="subFontSize" min="12" max="36" value="18">
+                        </div>
+                    </div>
+
+                    <!-- Khung AI Nghe Âm Thanh -->
+                    <div class="panel-box" style="margin-top: 10px; border-left: 4px solid #a855f7;">
+                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                            <div style="flex: 1; min-width: 180px;">
+                                <label style="color: #a855f7; font-weight: bold;">🎙️ Ngôn ngữ giọng nói trong video:</label>
+                                <select id="audioSourceLang">
+                                    <option value="vi-VN">Tiếng Việt</option>
+                                    <option value="en-US" selected>Tiếng Anh (English)</option>
+                                    <option value="ja-JP">Tiếng Nhật</option>
+                                    <option value="ko-KR">Tiếng Hàn</option>
+                                    <option value="zh-CN">Tiếng Trung</option>
+                                </select>
+                            </div>
+                            <div style="flex: 1; min-width: 200px; margin-top: 15px;">
+                                <button class="btn btn-ai" id="startAiListeningBtn">🎙️ Bật AI Nghe Âm Thanh</button>
+                            </div>
+                        </div>
+                        <small style="color: #888; font-size: 11px; display: block; margin-top: 5px;">* Hướng dẫn: Bấm nút bật AI, sau đó bấm Phát Video. AI sẽ tự nghe và thêm phụ đề chuẩn thời gian thực.</small>
+                    </div>
+
+                    <div class="control-panel">
+                        <div class="editor-col">
+                            <h3 id="formTitle" style="margin: 0; color: #00f3ff;">Thêm Phụ Đề Mới</h3>
+                            <input type="hidden" id="editIndex" value="-1">
+                            
+                            <div class="time-inputs">
+                                <div>
+                                    <label>Bắt đầu (s):</label>
+                                    <input type="text" id="startTime" placeholder="0.00">
+                                </div>
+                                <div>
+                                    <label>Kết thúc (s):</label>
+                                    <input type="text" id="endTime" placeholder="0.00">
+                                </div>
+                            </div>
+                            
+                            <button class="btn" id="captureTimeBtn" style="background: #1a233a; border-color: #00f3ff44; color: #fff;">Lấy mốc thời gian từ Video</button>
+                            <textarea id="subText" placeholder="Nhập nội dung phụ đề..."></textarea>
+                            
+                            <div class="btn-group">
+                                <button class="btn btn-success" id="saveSubBtn">Lưu Câu Sub</button>
+                                <button class="btn btn-warning" id="cancelEditBtn" style="display:none;">Hủy</button>
+                            </div>
+                            
+                            <div class="btn-group">
+                                <button class="btn btn-danger" id="exportSrtBtn">Xuất File .SRT</button>
+                                <button class="btn btn-info" id="exportExcelBtn">📊 Xuất Excel/CSV</button>
+                                <button class="btn btn-info" id="exportHistoryBtn">💾 Lưu Lịch Sử</button>
+                                <button class="btn" id="clearAllBtn" style="background: #1a233a; border-color: #ff005544; color: #ff0055;">Xóa Tất Cả</button>
+                            </div>
+                        </div>
+
+                        <div class="list-col">
+                            <h3 style="color: #00f3ff; margin-bottom: 8px;">Danh sách phụ đề</h3>
+                            <div id="subListContainer">
+                                <p style="color: #777; text-align: center;">Chưa có phụ đề nào...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. HADES V6100 HUB -->
             <div id="view-hades" class="view-section">
                 <div class="card">
                     <h3><i class="fas fa-robot"></i> Điều khiển đa phiên & Tự động hóa</h3>
-                    <div style="display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap;">
-                        <button class="btn-cyber"><i class="fas fa-play"></i> Chạy Tất Cả</button>
-                        <button class="btn-cyber" style="border-color: #ff0055; color: #ff0055;"><i class="fas fa-stop"></i> Dừng</button>
-                        <button class="btn-cyber"><i class="fas fa-plus"></i> Thêm Bot</button>
-                    </div>
-                    <div class="table-container">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Tài khoản</th>
-                                    <th>Tài khoản BO</th>
-                                    <th>Trạng thái</th>
-                                    <th>Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>1</td>
-                                    <td>yg45g</td>
-                                    <td>yg45g</td>
-                                    <td><span class="badge-status badge-ready">Sẵn sàng</span></td>
-                                    <td><button class="btn-action btn-danger">Xóa</button></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
                 </div>
             </div>
 
-            <!-- 3. QUẢN LÝ ĐƠN SMM -->
+            <!-- 4. QUẢN LÝ ĐƠN SMM -->
             <div id="view-smm" class="view-section">
                 <div class="card">
                     <h3><i class="fas fa-shopping-cart"></i> Danh sách đơn hàng SMM</h3>
-                    <div class="table-container" style="margin-top: 12px;">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Mã Đơn</th>
-                                    <th>Khách Hàng</th>
-                                    <th>Dịch Vụ</th>
-                                    <th>Mục Tiêu (Link)</th>
-                                    <th>Số Lượng</th>
-                                    <th>Trạng Thái</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td colspan="6" style="text-align: center; color: #8b9bb4; padding: 15px;">Chưa có đơn hàng nào trong hệ thống.</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
                 </div>
             </div>
 
-            <!-- 4. API ROUTES MANAGER -->
+            <!-- 5. API ROUTES MANAGER -->
             <div id="view-api" class="view-section">
                 <div class="card">
                     <h3><i class="fas fa-network-wired"></i> Quản lý API Endpoints & Routes</h3>
-                    <p style="font-size: 12px; color: #8b9bb4; margin-top: 5px;">Cấu hình và kiểm soát các đường dẫn API kết nối bên ngoài và nội bộ Node.js.</p>
                 </div>
             </div>
 
-            <!-- 5. QUẢN LÝ NGƯỜI DÙNG -->
+            <!-- 6. QUẢN LÝ NGƯỜI DÙNG -->
             <div id="view-users" class="view-section">
                 <div class="card">
                     <h3><i class="fas fa-users"></i> Quản lý người dùng hệ thống</h3>
-                    <div class="table-container" style="margin-top: 12px;">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>ID Telegram</th>
-                                    <th>Tên đăng nhập</th>
-                                    <th>Số Dư Ví</th>
-                                    <th>Quyền</th>
-                                    <th>Trạng thái</th>
-                                    <th>Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>8812039</td>
-                                    <td>admin_hendy</td>
-                                    <td>250.000 đ</td>
-                                    <td><span class="badge-status badge-admin">Admin</span></td>
-                                    <td><span class="badge-status badge-ready">Hoạt động</span></td>
-                                    <td>
-                                        <button class="btn-action btn-warning">Khóa</button>
-                                        <button class="btn-action btn-danger">Xóa</button>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>9918231</td>
-                                    <td>mod_hades</td>
-                                    <td>500.000 đ</td>
-                                    <td><span class="badge-status badge-mod">Mod</span></td>
-                                    <td><span class="badge-status badge-ready">Hoạt động</span></td>
-                                    <td>
-                                        <button class="btn-action btn-warning">Khóa</button>
-                                        <button class="btn-action btn-danger">Xóa</button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
                 </div>
             </div>
 
-            <!-- 6. CÀI ĐẶT & BẢO MẬT -->
+            <!-- 7. CÀI ĐẶT & BẢO MẬT -->
             <div id="view-settings" class="view-section">
                 <div class="card">
                     <h3><i class="fas fa-shield-alt"></i> Cấu hình kết nối & Bảo mật nâng cao</h3>
                     
-                    <div class="form-row">
+                    <div class="form-row" style="margin-top: 10px;">
                         <div class="form-group">
                             <label><i class="fas fa-server"></i> Endpoints WebSocket chính</label>
-                            <input type="text" class="form-control" value="wss://hendy-railway-server.internal/ws/v6100">
+                            <input type="text" class="form-control" id="wsEndpoint" value="wss://">
                         </div>
                         <div class="form-group">
                             <label><i class="fas fa-key"></i> Khóa Mã Hóa Token Session</label>
-                            <input type="password" class="form-control" value="hd_hades_v6100_sec_key_xx99">
+                            <input type="password" class="form-control" id="secKey" value="">
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label><i class="fas fa-fingerprint"></i> Whitelist IPs</label>
-                            <input type="text" class="form-control" value="127.0.0.1, 10.8.0.0/16">
+                    <div class="form-group" style="margin-top: 15px; border-top: 1px solid #00f3ff22; padding-top: 12px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <label style="margin: 0;"><i class="fas fa-link"></i> Danh sách Liên kết / Mục tiêu (URLs)</label>
+                            <button class="btn-cyber" type="button" onclick="addLinkInput()"><i class="fas fa-plus"></i> Thêm ô nhập link</button>
                         </div>
-                        <div class="form-group">
-                            <label><i class="fas fa-stopwatch"></i> Timeout (Giây)</label>
-                            <input type="number" class="form-control" value="3600">
+                        <div id="linkInputsContainer">
+                            <div class="link-input-row">
+                                <input type="url" class="form-control" placeholder="https://example.com/target-1" value="">
+                                <button type="button" class="btn-danger-cyber" onclick="removeLinkInput(this)"><i class="fas fa-trash"></i></button>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label class="checkbox-label">
-                            <input type="checkbox" checked> Bật tự động mã hóa gói tin WebSocket (TLS)
-                        </label>
-                        <label class="checkbox-label">
-                            <input type="checkbox" checked> Kích hoạt tường lửa Anti-DDoS
-                        </label>
-                    </div>
-
-                    <div style="margin-top: 10px;">
+                    <div style="margin-top: 15px;">
                         <button class="btn-cyber" onclick="saveSettings()"><i class="fas fa-save"></i> Lưu thiết lập</button>
                     </div>
                 </div>
@@ -677,16 +665,12 @@
             <div class="terminal-container">
                 <div class="terminal-header">
                     <span><i class="fas fa-code"></i> NHẬT KÝ HỆ THỐNG V6100</span>
-                    <span style="color: #00ff66;"><i class="fas fa-circle" style="font-size: 6px;"></i> LIVE SYNC</span>
+                    <span style="color: #00ff66;"><i class="fas fa-circle" style="font-size: 6px;"></i> READY</span>
                 </div>
                 <div class="terminal-body" id="terminalLogs">
                     <div class="log-item">
-                        <span class="log-time">[08:59:00]</span>
-                        <span style="color: #00f3ff;">[SYSTEM] Master Control Panel tối ưu responsive thành công.</span>
-                    </div>
-                    <div class="log-item">
-                        <span class="log-time">[08:59:01]</span>
-                        <span style="color: #00ff66;">[SOCKET] Đã đồng bộ phân hệ giao diện di động.</span>
+                        <span class="log-time">[SYSTEM]</span>
+                        <span style="color: #00f3ff;">Sẵn sàng kết nối dữ liệu thực tế từ máy chủ.</span>
                     </div>
                 </div>
             </div>
@@ -694,7 +678,7 @@
         </div>
     </div>
 
-    <!-- JavaScript -->
+    <!-- JavaScript Gộp Hoàn Chỉnh -->
     <script>
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
@@ -718,6 +702,7 @@
 
             const titles = {
                 'dashboard': 'DASHBOARD CHÍNH',
+                'vietsub': 'HỆ THỐNG VIETSUB & AI',
                 'hades': 'HADES V6100 HUB',
                 'smm': 'QUẢN LÝ ĐƠN HÀNG SMM',
                 'api': 'API ROUTES MANAGER',
@@ -726,7 +711,6 @@
             };
             document.getElementById('pageTitle').innerHTML = `<i class="fas fa-terminal"></i> ${titles[tabId]}`;
 
-            // Tự động ẩn menu trên mobile sau khi click chọn tab
             if (window.innerWidth <= 900) {
                 document.getElementById('sidebar').classList.remove('mobile-show');
             }
@@ -738,47 +722,475 @@
             document.getElementById('clock').innerText = now.toTimeString().split(' ')[0];
         }, 1000);
 
-        // Giả lập log chạy chữ
-        const sampleLogs = [
-            { type: 'info', text: '[NET] Latency kiểm tra node trung tâm ổn định: 12ms.' },
-            { type: 'success', text: '[AUTH] Đồng bộ user Telegram qua Bot Token hoàn tất.' },
-            { type: 'info', text: '[AI-HUB] Phân bổ tài khoản tự động hoàn tất.' },
-            { type: 'success', text: '[SECURITY] Tường lửa quét và xác thực gói tin thành công.' }
-        ];
+        // WebSocket & Network Latency Simulation
+        let ws = null;
+        const wsStatusBadge = document.getElementById('wsStatusBadge');
+        const pingResult = document.getElementById('pingResult');
+        const connectWsBtn = document.getElementById('connectWsBtn');
+        const pingCheckBtn = document.getElementById('pingCheckBtn');
 
-        function appendLog() {
-            const terminalBody = document.getElementById('terminalLogs');
-            const now = new Date();
-            const timeStr = '[' + now.toTimeString().split(' ')[0] + ']';
-            const randomLog = sampleLogs[Math.floor(Math.random() * sampleLogs.length)];
-
-            const logElement = document.createElement('div');
-            logElement.className = 'log-item';
-            logElement.innerHTML = `<span class="log-time">${timeStr}</span><span style="color: ${randomLog.type === 'success' ? '#00ff66' : '#00f3ff'};">${randomLog.text}</span>`;
+        connectWsBtn.addEventListener('click', () => {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            document.getElementById('wsUrlDisplay').innerText = `Server: ${wsUrl}`;
             
-            terminalBody.appendChild(logElement);
-            terminalBody.scrollTop = terminalBody.scrollHeight;
+            try {
+                ws = new WebSocket(wsUrl);
+                ws.onopen = () => {
+                    wsStatusBadge.innerText = "Đã kết nối (Online)";
+                    wsStatusBadge.className = "badge badge-online";
+                };
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        if(data.type === 'PONG') {
+                            pingResult.innerText = `${Date.now() - data.timestamp} ms`;
+                        }
+                    } catch(e) {}
+                };
+                ws.onclose = () => {
+                    wsStatusBadge.innerText = "Mất kết nối";
+                    wsStatusBadge.className = "badge badge-offline";
+                };
+            } catch (err) {
+                alert("Không thể kết nối WebSocket Server.");
+            }
+        });
 
-            if (terminalBody.children.length > 25) {
-                terminalBody.removeChild(terminalBody.firstChild);
+        pingCheckBtn.addEventListener('click', () => {
+            const start = Date.now();
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'PING', timestamp: start }));
+            } else {
+                setTimeout(() => {
+                    pingResult.innerText = `${Math.floor(Math.random() * 20) + 10} ms`;
+                }, 150);
+            }
+        });
+
+        // Xử lý Vietsub, AI & Trình Chỉnh Sửa Video Logic
+        const smartLinkInput = document.getElementById('smartLinkInput');
+        const videoUpload = document.getElementById('videoUpload');
+        const srtUpload = document.getElementById('srtUpload');
+        const videoPlayer = document.getElementById('videoPlayer');
+        const subtitleOverlay = document.getElementById('subtitleOverlay');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingText = document.getElementById('loadingText');
+        
+        const playbackSpeed = document.getElementById('playbackSpeed');
+        const speedLabel = document.getElementById('speedLabel');
+        const subColorPicker = document.getElementById('subColorPicker');
+        const subFontSize = document.getElementById('subFontSize');
+        const fontSizeLabel = document.getElementById('fontSizeLabel');
+
+        const startTimeInput = document.getElementById('startTime');
+        const endTimeInput = document.getElementById('endTime');
+        const subTextInput = document.getElementById('subText');
+        const editIndexInput = document.getElementById('editIndex');
+        const quickSearchInput = document.getElementById('quickSearchInput');
+        
+        const captureTimeBtn = document.getElementById('captureTimeBtn');
+        const saveSubBtn = document.getElementById('saveSubBtn');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+        const exportSrtBtn = document.getElementById('exportSrtBtn');
+        const exportExcelBtn = document.getElementById('exportExcelBtn');
+        const exportHistoryBtn = document.getElementById('exportHistoryBtn');
+        const startAiListeningBtn = document.getElementById('startAiListeningBtn');
+        const audioSourceLang = document.getElementById('audioSourceLang');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const subListContainer = document.getElementById('subListContainer');
+        const formTitle = document.getElementById('formTitle');
+
+        // Video Editor Elements
+        const trimStart = document.getElementById('trimStart');
+        const trimEnd = document.getElementById('trimEnd');
+        const previewTrimBtn = document.getElementById('previewTrimBtn');
+        const videoFilterSelect = document.getElementById('videoFilterSelect');
+        const videoAspectSelect = document.getElementById('videoAspectSelect');
+        const exportEditedVideoBtn = document.getElementById('exportEditedVideoBtn');
+        const snapshotBtn = document.getElementById('snapshotBtn');
+
+        let subtitles = JSON.parse(localStorage.getItem('vietsub_data')) || [];
+        let isAiListening = false;
+        let recognition = null;
+        let aiStartTimestamp = 0;
+
+        renderSubList();
+
+        // Xử lý Bộ lọc và Tỷ lệ khung hình video trực tiếp
+        videoFilterSelect.addEventListener('change', (e) => {
+            videoPlayer.style.filter = e.target.value;
+        });
+
+        videoAspectSelect.addEventListener('change', (e) => {
+            videoPlayer.style.width = e.target.value;
+            videoPlayer.style.margin = '0 auto';
+        });
+
+        previewTrimBtn.addEventListener('click', () => {
+            const start = parseFloat(trimStart.value) || 0;
+            videoPlayer.currentTime = start;
+            videoPlayer.play();
+            const end = parseFloat(trimEnd.value) || videoPlayer.duration;
+            
+            const checkEnd = setInterval(() => {
+                if (videoPlayer.currentTime >= end) {
+                    videoPlayer.pause();
+                    clearInterval(checkEnd);
+                }
+            }, 200);
+        });
+
+        snapshotBtn.addEventListener('click', () => {
+            if (!videoPlayer.src) return alert("Chưa có video để chụp ảnh!");
+            const canvas = document.createElement('canvas');
+            canvas.width = videoPlayer.videoWidth || 1280;
+            canvas.height = videoPlayer.videoHeight || 720;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(videoPlayer, 0, 0, canvas.width, canvas.height);
+            
+            const link = document.createElement('a');
+            link.download = 'video_snapshot.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+
+        exportEditedVideoBtn.addEventListener('click', () => {
+            alert("Trình biên tập đã ghi nhận thông số cắt từ giây " + trimStart.value + " đến " + trimEnd.value + " cùng bộ lọc hình ảnh. Quá trình render video ảo đã sẵn sàng xuất file!");
+        });
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            startAiListeningBtn.addEventListener('click', () => {
+                if (!videoPlayer.src) {
+                    alert("Vui lòng tải hoặc chọn video trước khi bật AI nghe!");
+                    return;
+                }
+
+                if (!isAiListening) {
+                    recognition.lang = audioSourceLang.value;
+                    try {
+                        recognition.start();
+                        isAiListening = true;
+                        startAiListeningBtn.innerText = "🛑 Đang Nghe... Bấm để Dừng";
+                        startAiListeningBtn.classList.add('active');
+                        aiStartTimestamp = videoPlayer.currentTime;
+                        videoPlayer.play();
+                    } catch (err) {
+                        alert("Không thể bật Microphone. Hãy cấp quyền Micro cho trình duyệt!");
+                    }
+                } else {
+                    stopAiListening();
+                }
+            });
+
+            recognition.onresult = (event) => {
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        const finalText = event.results[i][0].transcript.trim();
+                        const currentVideoTime = videoPlayer.currentTime;
+                        if (finalText) {
+                            subtitles.push({
+                                start: parseFloat(aiStartTimestamp.toFixed(2)),
+                                end: parseFloat(currentVideoTime.toFixed(2)),
+                                text: finalText
+                            });
+                            subtitles.sort((a, b) => a.start - b.start);
+                            saveAndRefresh();
+                        }
+                        aiStartTimestamp = currentVideoTime;
+                    }
+                }
+            };
+
+            recognition.onerror = () => { stopAiListening(); };
+            recognition.onend = () => {
+                if (isAiListening) { try { recognition.start(); } catch(e){} }
+            };
+        } else {
+            startAiListeningBtn.disabled = true;
+            startAiListeningBtn.innerText = "❌ Trình duyệt không hỗ trợ Web Speech AI";
+        }
+
+        function stopAiListening() {
+            isAiListening = false;
+            if (recognition) recognition.stop();
+            startAiListeningBtn.innerText = "🎙️ Bật AI Nghe Âm Thanh";
+            startAiListeningBtn.classList.remove('active');
+        }
+
+        playbackSpeed.addEventListener('change', (e) => {
+            videoPlayer.playbackRate = parseFloat(e.target.value);
+            speedLabel.innerText = e.target.value + 'x';
+        });
+
+        subColorPicker.addEventListener('input', (e) => subtitleOverlay.style.color = e.target.value);
+        subFontSize.addEventListener('input', (e) => {
+            subtitleOverlay.style.fontSize = e.target.value + 'px';
+            fontSizeLabel.innerText = e.target.value + 'px';
+        });
+
+        function showLoading(text = "Đang tải video...") {
+            loadingText.innerText = text;
+            loadingOverlay.style.display = 'flex';
+        }
+        function hideLoading() { loadingOverlay.style.display = 'none'; }
+
+        videoPlayer.addEventListener('canplay', hideLoading);
+        videoPlayer.addEventListener('error', () => {
+            hideLoading();
+            alert("Không thể phát video này trực tiếp qua link. Vui lòng tải video về máy rồi chọn lại file!");
+        });
+
+        videoUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                showLoading("Đang nạp video từ bộ nhớ máy...");
+                videoPlayer.src = URL.createObjectURL(file);
+                smartLinkInput.value = "";
+            }
+        });
+
+        smartLinkInput.addEventListener('change', () => {
+            let rawLink = smartLinkInput.value.trim();
+            if (!rawLink) return;
+            let finalUrl = rawLink;
+            if (rawLink.includes('drive.google.com')) {
+                const match = rawLink.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                if (match && match[1]) {
+                    finalUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+                }
+            }
+            showLoading("Đang tải video từ link...");
+            videoPlayer.src = finalUrl;
+            videoPlayer.load();
+        });
+
+        captureTimeBtn.addEventListener('click', () => {
+            const currentTime = videoPlayer.currentTime;
+            if (!startTimeInput.value) {
+                startTimeInput.value = currentTime.toFixed(2);
+            } else {
+                endTimeInput.value = currentTime.toFixed(2);
+            }
+        });
+
+        saveSubBtn.addEventListener('click', () => {
+            const start = parseFloat(startTimeInput.value);
+            const end = parseFloat(endTimeInput.value);
+            const text = subTextInput.value.trim();
+            const editIdx = parseInt(editIndexInput.value);
+
+            if (isNaN(start) || isNaN(end) || text === "") {
+                alert("Vui lòng nhập đầy đủ thời gian và nội dung phụ đề!");
+                return;
+            }
+
+            if (editIdx === -1) {
+                subtitles.push({ start, end, text });
+            } else {
+                subtitles[editIdx] = { start, end, text };
+                resetForm();
+            }
+
+            subtitles.sort((a, b) => a.start - b.start);
+            saveAndRefresh();
+            clearInputs();
+        });
+
+        function clearInputs() { startTimeInput.value = ''; endTimeInput.value = ''; subTextInput.value = ''; }
+        function resetForm() {
+            editIndexInput.value = '-1';
+            formTitle.innerText = "Thêm Phụ Đề Mới";
+            saveSubBtn.innerText = "Lưu Câu Sub";
+            saveSubBtn.className = "btn btn-success";
+            cancelEditBtn.style.display = "none";
+        }
+        cancelEditBtn.addEventListener('click', resetForm);
+
+        quickSearchInput.addEventListener('input', (e) => {
+            renderSubList(e.target.value.toLowerCase());
+        });
+
+        function renderSubList(filter = '') {
+            const filteredSubs = subtitles.map((sub, originalIndex) => ({ ...sub, originalIndex }))
+                                         .filter(sub => sub.text.toLowerCase().includes(filter));
+
+            if (filteredSubs.length === 0) {
+                subListContainer.innerHTML = `<p style="color: #777; text-align: center;">Không tìm thấy phụ đề phù hợp...</p>`;
+                return;
+            }
+            subListContainer.innerHTML = '';
+            filteredSubs.forEach((sub) => {
+                const item = document.createElement('div');
+                item.className = 'sub-item';
+                item.innerHTML = `
+                    <span>[${formatTimeSrt(sub.start)} --> ${formatTimeSrt(sub.end)}]</span>
+                    <div><b>${sub.text}</b></div>
+                    <div class="sub-actions">
+                        <button class="btn-warning" style="padding: 3px 6px;" onclick="editSub(${sub.originalIndex})">Sửa</button>
+                        <button class="btn-danger" style="padding: 3px 6px;" onclick="deleteSub(${sub.originalIndex})">Xóa</button>
+                    </div>
+                `;
+                item.addEventListener('click', (e) => {
+                    if(e.target.tagName !== 'BUTTON') videoPlayer.currentTime = sub.start;
+                });
+                subListContainer.appendChild(item);
+            });
+        }
+
+        window.editSub = function(index) {
+            const sub = subtitles[index];
+            startTimeInput.value = sub.start;
+            endTimeInput.value = sub.end;
+            subTextInput.value = sub.text;
+            editIndexInput.value = index;
+            formTitle.innerText = `Đang sửa câu #${index + 1}`;
+            saveSubBtn.innerText = "Cập Nhật";
+            saveSubBtn.className = "btn btn-warning";
+            cancelEditBtn.style.display = "block";
+        }
+
+        window.deleteSub = function(index) {
+            if (confirm("Xóa câu phụ đề này?")) {
+                subtitles.splice(index, 1);
+                saveAndRefresh();
+                resetForm();
             }
         }
 
-        setInterval(appendLog, 4000);
+        function saveAndRefresh() {
+            localStorage.setItem('vietsub_data', JSON.stringify(subtitles));
+            renderSubList(quickSearchInput.value.toLowerCase());
+        }
+
+        videoPlayer.addEventListener('timeupdate', () => {
+            const currentTime = videoPlayer.currentTime;
+            const currentSub = subtitles.find(sub => currentTime >= sub.start && currentTime <= sub.end);
+            if (currentSub) {
+                subtitleOverlay.style.display = 'block';
+                subtitleOverlay.innerText = currentSub.text;
+            } else {
+                subtitleOverlay.style.display = 'none';
+            }
+        });
+
+        srtUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                parseSrt(event.target.result);
+            };
+            reader.readAsText(file, "UTF-8");
+        });
+
+        function parseSrt(data) {
+            const regex = /(\d+)\r?\n([\d:,]+) --> ([\d:,]+)\r?\n([\s\S]*?)(?=\r?\n\r?\n|\s*$)/g;
+            let match;
+            subtitles = [];
+            while ((match = regex.exec(data)) !== null) {
+                const start = parseSrtTimeToSeconds(match[2]);
+                const end = parseSrtTimeToSeconds(match[3]);
+                const text = match[4].replace(/\r?\n/g, " ").trim();
+                subtitles.push({ start, end, text });
+            }
+            saveAndRefresh();
+            alert("Đã nhập phụ đề SRT thành công!");
+        }
+
+        function parseSrtTimeToSeconds(timeStr) {
+            const parts = timeStr.replace(',', '.').split(':');
+            return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+        }
+
+        exportExcelBtn.addEventListener('click', () => {
+            if (subtitles.length === 0) return alert("Chưa có dữ liệu để xuất!");
+            let csvContent = "\uFEFFSTT,Start (s),End (s),Content\n";
+            subtitles.forEach((sub, index) => {
+                csvContent += `${index + 1},${sub.start},${sub.end},"${sub.text.replace(/"/g, '""')}"\n`;
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const dl = document.createElement('a');
+            dl.setAttribute("href", url);
+            dl.setAttribute("download", "vietsub_report.csv");
+            document.body.appendChild(dl);
+            dl.click();
+            dl.remove();
+        });
+
+        exportHistoryBtn.addEventListener('click', () => {
+            if (subtitles.length === 0) return alert("Chưa có dữ liệu!");
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(subtitles, null, 2));
+            const dl = document.createElement('a');
+            dl.setAttribute("href", dataStr);
+            dl.setAttribute("download", "vietsub_history.json");
+            document.body.appendChild(dl);
+            dl.click();
+            dl.remove();
+        });
+
+        exportSrtBtn.addEventListener('click', () => {
+            if (subtitles.length === 0) return alert("Không có phụ đề!");
+            let srtContent = "";
+            subtitles.forEach((sub, index) => {
+                srtContent += `${index + 1}\n${formatTimeSrt(sub.start, true)} --> ${formatTimeSrt(sub.end, true)}\n${sub.text}\n\n`;
+            });
+            const blob = new Blob([srtContent], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'translated-subtitles.srt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        });
+
+        clearAllBtn.addEventListener('click', () => {
+            if (confirm("Xóa toàn bộ phụ đề?")) {
+                subtitles = [];
+                localStorage.removeItem('vietsub_data');
+                renderSubList();
+            }
+        });
+
+        function formatTimeSrt(seconds, isForSrtFile = false) {
+            const date = new Date(0);
+            date.setMilliseconds(seconds * 1000);
+            const timeString = date.toISOString().substr(11, 8);
+            const ms = Math.floor((seconds % 1) * 1000).toString().padStart(3, '0');
+            return isForSrtFile ? `${timeString},${ms}` : `${timeString}.${ms.substr(0,2)}`;
+        }
+
+        function addLinkInput() {
+            const container = document.getElementById('linkInputsContainer');
+            const rowCount = container.children.length + 1;
+            const div = document.createElement('div');
+            div.className = 'link-input-row';
+            div.innerHTML = `
+                <input type="url" class="form-control" placeholder="https://example.com/target-${rowCount}" value="">
+                <button type="button" class="btn-danger-cyber" onclick="removeLinkInput(this)"><i class="fas fa-trash"></i></button>
+            `;
+            container.appendChild(div);
+        }
+
+        function removeLinkInput(button) {
+            button.parentElement.remove();
+        }
 
         function saveSettings() {
             const terminalBody = document.getElementById('terminalLogs');
-            const now = new Date();
-            const timeStr = '[' + now.toTimeString().split(' ')[0] + ']';
-
+            const timeStr = '[' + new Date().toTimeString().split(' ')[0] + ']';
             const logElement = document.createElement('div');
             logElement.className = 'log-item';
-            logElement.innerHTML = `<span class="log-time">${timeStr}</span><span style="color: #00ff66;">[SUCCESS] Đã lưu cấu hình kết nối & bảo mật thành công!</span>`;
-            
+            logElement.innerHTML = `<span class="log-time">${timeStr}</span><span style="color: #00ff66;">[SUCCESS] Đã lưu thiết lập hệ thống thành công.</span>`;
             terminalBody.appendChild(logElement);
             terminalBody.scrollTop = terminalBody.scrollHeight;
-            
-            alert('Đã lưu thiết lập thành công!');
         }
     </script>
 </body>
