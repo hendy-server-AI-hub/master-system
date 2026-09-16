@@ -286,7 +286,7 @@
         .editor-col { flex: 1; display: flex; flex-direction: column; gap: 10px; }
         .list-col { flex: 1; max-height: 550px; overflow-y: auto; background: #05070d; padding: 10px; border-radius: 6px; border: 1px solid #00f3ff33; }
         
-        input[type="text"], input[type="url"], input[type="color"], input[type="range"], textarea, select {
+        input[type="text"], input[type="number"], input[type="url"], input[type="color"], input[type="range"], textarea, select {
             width: 100%; padding: 10px; background: #05070d; border: 1px solid #00f3ff44; color: #fff; border-radius: 6px; box-sizing: border-box; font-size: 12px; outline: none;
         }
         input[type="file"] { width: 100%; padding: 8px; background: #05070d; border: 1px solid #00f3ff44; color: #fff; border-radius: 6px; font-size: 12px; }
@@ -328,7 +328,7 @@
         .panel-box { background: #0b0f19; padding: 12px; border-radius: 8px; border: 1px solid #00f3ff44; }
         
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-bottom: 10px; }
-        .status-card { background: #05070d; padding: 12px; border-radius: 6px; border: 1px solid #00f3ff33; }
+        .status-card { background: #05070d; padding: 12px; border-radius: 6px; border: 1px solid #00f3ff33; position: relative; }
         .status-card h4 { margin: 0 0 5px 0; font-size: 13px; color: #00f3ff; }
         .badge { display: inline-block; padding: 3px 6px; border-radius: 3px; font-size: 11px; font-weight: bold; }
         .badge-online { background: rgba(0, 255, 102, 0.2); color: #00ff66; border: 1px solid #00ff6666; }
@@ -365,6 +365,7 @@
         </div>
         <ul class="sidebar-menu">
             <li><a class="menu-link active" onclick="switchTab('dashboard', this)"><i class="fas fa-home"></i> Dashboard chính</a></li>
+            <li><a class="menu-link" onclick="switchTab('live-boost', this)"><i class="fas fa-broadcast-tower"></i> Tăng Mắt & Quản Lý Live</a></li>
             <li><a class="menu-link" onclick="switchTab('vietsub', this)"><i class="fas fa-closed-captioning"></i> Hệ Thống Vietsub & AI</a></li>
             <li><a class="menu-link" onclick="switchTab('hades', this)"><i class="fas fa-robot"></i> Hades V6100 Hub</a></li>
             <li><a class="menu-link" onclick="switchTab('smm', this)"><i class="fas fa-shopping-cart"></i> Quản lý Đơn SMM</a></li>
@@ -441,7 +442,47 @@
                 </div>
             </div>
 
-            <!-- 2. HỆ THỐNG VIETSUB & AI -->
+            <!-- 2. TĂNG MẮT & QUẢN LÝ LIVE STREAM ĐA NỀN TẢNG (MỚI TÍCH HỢP) -->
+            <div id="view-live-boost" class="view-section">
+                <div class="card" style="padding: 15px;">
+                    <h3 style="margin-bottom: 12px;"><i class="fas fa-broadcast-tower"></i> Hệ Thống Tăng Người Xem (Live Viewers) Đa Nền Tảng</h3>
+                    
+                    <div class="form-row" style="margin-bottom: 12px;">
+                        <div>
+                            <label>🌐 Chọn Nền Tảng Livestream:</label>
+                            <select id="livePlatform" class="form-control">
+                                <option value="TikTok">TikTok Live (@username)</option>
+                                <option value="YouTube">YouTube Live (URL Stream)</option>
+                                <option value="Facebook">Facebook Live (URL Video/Stream)</option>
+                                <option value="Shopee">Shopee Live</option>
+                                <option value="Bigo">Bigo Live</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>🔗 Nhập Link Phòng Live hoặc TikTok Username:</label>
+                            <input type="text" id="liveTargetInput" class="form-control" placeholder="VD: tradausu hoặc https://youtube.com/watch?v=...">
+                        </div>
+                    </div>
+
+                    <div class="form-row" style="margin-bottom: 15px;">
+                        <div>
+                            <label>📈 Số Mắt Xem Mục Tiêu (Target Viewers):</label>
+                            <input type="number" id="targetViewersInput" class="form-control" value="500">
+                        </div>
+                        <div style="display: flex; align-items: flex-end;">
+                            <button class="btn btn-success" id="startLiveBoostBtn" style="width: 100%;"><i class="fas fa-play"></i> Bắt Đầu Tăng Mắt / Theo Dõi</button>
+                        </div>
+                    </div>
+
+                    <!-- Bảng hiển thị các phiên Live đang chạy -->
+                    <h4 style="color: #00f3ff; margin-bottom: 8px;"><i class="fas fa-chart-line"></i> Trạng Thái Các Phiên Live Đang Chạy Realtime</h4>
+                    <div id="activeLiveSessionsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px;">
+                        <p style="color: #777;">Chưa có phiên livestream nào được kích hoạt...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. HỆ THỐNG VIETSUB & AI -->
             <div id="view-vietsub" class="view-section">
                 <div class="card" style="padding: 15px;">
                     <h3 style="margin-bottom: 12px;"><i class="fas fa-closed-captioning"></i> Trình Điều Khiển Vietsub, AI & Chỉnh Sửa Video</h3>
@@ -597,35 +638,35 @@
                 </div>
             </div>
 
-            <!-- 3. HADES V6100 HUB -->
+            <!-- 4. HADES V6100 HUB -->
             <div id="view-hades" class="view-section">
                 <div class="card">
                     <h3><i class="fas fa-robot"></i> Điều khiển đa phiên & Tự động hóa</h3>
                 </div>
             </div>
 
-            <!-- 4. QUẢN LÝ ĐƠN SMM -->
+            <!-- 5. QUẢN LÝ ĐƠN SMM -->
             <div id="view-smm" class="view-section">
                 <div class="card">
                     <h3><i class="fas fa-shopping-cart"></i> Danh sách đơn hàng SMM</h3>
                 </div>
             </div>
 
-            <!-- 5. API ROUTES MANAGER -->
+            <!-- 6. API ROUTES MANAGER -->
             <div id="view-api" class="view-section">
                 <div class="card">
                     <h3><i class="fas fa-network-wired"></i> Quản lý API Endpoints & Routes</h3>
                 </div>
             </div>
 
-            <!-- 6. QUẢN LÝ NGƯỜI DÙNG -->
+            <!-- 7. QUẢN LÝ NGƯỜI DÙNG -->
             <div id="view-users" class="view-section">
                 <div class="card">
                     <h3><i class="fas fa-users"></i> Quản lý người dùng hệ thống</h3>
                 </div>
             </div>
 
-            <!-- 7. CÀI ĐẶT & BẢO MẬT -->
+            <!-- 8. CÀI ĐẶT & BẢO MẬT -->
             <div id="view-settings" class="view-section">
                 <div class="card">
                     <h3><i class="fas fa-shield-alt"></i> Cấu hình kết nối & Bảo mật nâng cao</h3>
@@ -677,15 +718,17 @@
         </div>
     </div>
 
-    <!-- JavaScript Gộp Hoàn Chỉnh & Fix Triệt Để Lỗi Khựng AI -->
+    <!-- JavaScript Gộp Hoàn Chỉnh -->
     <script>
         // -------------------------------------------------------------
-        // 1. WEBSOCKET ENGINE (Mã Tích Hợp)
+        // 1. WEBSOCKET ENGINE & TĂNG MẮT LIVE
         // -------------------------------------------------------------
         let ws;
 
         function initWebSocket() {
-            const wsUrl = document.getElementById('wsEndpoint')?.value || 'wss://hendy-hades-cloud-production.up.railway.app';
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const defaultWsUrl = `${protocol}//${window.location.host}`;
+            const wsUrl = document.getElementById('wsEndpoint')?.value || defaultWsUrl;
             const wsUrlDisplay = document.getElementById('wsUrlDisplay');
             if (wsUrlDisplay) wsUrlDisplay.innerText = `Server: ${wsUrl}`;
 
@@ -694,14 +737,14 @@
             ws.onopen = () => {
                 console.log('[WS] Đã kết nối thành công!');
                 updateStatusUI(true);
-                addTerminalLog('SYSTEM', '[WS] Kết nối WebSocket thành công tới Railway!', '#00ff66');
+                addTerminalLog('SYSTEM', '[WS] Kết nối WebSocket thành công tới WebSocket Hub!', '#00ff66');
             };
 
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
                     if (data.type === 'INIT_STATE' && data.data) {
-                        if (data.data.botCount) updateBotCount(data.data.botCount);
+                        if (data.data.botCount !== undefined) updateBotCount(data.data.botCount);
                     }
                     if (data.type === 'PONG') {
                         const latency = Date.now() - data.timestamp;
@@ -711,6 +754,17 @@
                     if (data.type === 'BOT_COUNT_UPDATED') {
                         updateBotCount(data.count);
                         addTerminalLog('SERVER', `Đã cập nhật số lượng Bot: ${data.count}`, '#00f3ff');
+                    }
+                    if (data.type === 'LIVE_VIEWER_UPDATE') {
+                        updateLiveSessionCard(data);
+                    }
+                    if (data.type === 'LIVE_BOOST_STATUS') {
+                        addTerminalLog('LIVE', `[${data.platform}] ${data.message}`, data.status === 'ERROR' ? '#ff0055' : '#00ff66');
+                    }
+                    if (data.type === 'LIVE_SESSION_STOPPED') {
+                        const card = document.getElementById(`live_card_${data.sessionId}`);
+                        if (card) card.remove();
+                        addTerminalLog('LIVE', data.message, '#ff0055');
                     }
                 } catch (e) {
                     console.error('[WS] Lỗi giải mã JSON:', e);
@@ -774,6 +828,86 @@
 
         window.addEventListener('DOMContentLoaded', initWebSocket);
 
+        // Nút Kích Hoạt Tăng Mắt Live Stream
+        document.getElementById('startLiveBoostBtn')?.addEventListener('click', async () => {
+            const platform = document.getElementById('livePlatform').value;
+            const targetInput = document.getElementById('liveTargetInput').value.trim();
+            const targetViewers = parseInt(document.getElementById('targetViewersInput').value) || 100;
+
+            if (!targetInput) {
+                alert('Vui lòng nhập Link hoặc Username phòng live!');
+                return;
+            }
+
+            let payload = { platform, targetViewers };
+            if (platform === 'TikTok') {
+                payload.username = targetInput.replace('@', '');
+            } else {
+                payload.targetUrl = targetInput;
+            }
+
+            try {
+                const response = await fetch('/api/live/start-boost', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    addTerminalLog('LIVE', `Khởi chạy tiến trình tăng mắt ${platform} (Session ID: ${result.sessionId})`, '#00ff66');
+                } else {
+                    alert('Lỗi: ' + result.error);
+                }
+            } catch (err) {
+                console.error(err);
+                alert('Không thể kết nối tới Server API.');
+            }
+        });
+
+        function updateLiveSessionCard(data) {
+            let container = document.getElementById('activeLiveSessionsContainer');
+            if (!container) return;
+            
+            if (container.querySelector('p')) {
+                container.innerHTML = '';
+            }
+
+            let cardId = `live_card_${data.sessionId}`;
+            let card = document.getElementById(cardId);
+
+            if (!card) {
+                card = document.createElement('div');
+                card.id = cardId;
+                card.className = 'status-card';
+                container.appendChild(card);
+            }
+
+            card.innerHTML = `
+                <h4>🔴 ${data.platform} Live Stream</h4>
+                <div style="font-size: 11px; color: #8b9bb4; margin-bottom: 5px; word-break: break-all;">Mục tiêu: ${data.username ? '@' + data.username : data.targetUrl}</div>
+                <div style="font-size: 24px; font-weight: bold; color: #00ff66;">👁️ ${data.currentViewers.toLocaleString()} <span style="font-size: 12px; color: #8b9bb4;">/ ${data.targetViewers.toLocaleString()} mắt</span></div>
+                <button class="btn btn-danger" style="margin-top: 8px; padding: 5px 10px; font-size: 11px;" onclick="stopLiveBoost('${data.sessionId}')">Dừng Phiên</button>
+            `;
+        }
+
+        async function stopLiveBoost(sessionId) {
+            try {
+                const response = await fetch('/api/live/stop-boost', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    const card = document.getElementById(`live_card_${sessionId}`);
+                    if (card) card.remove();
+                    addTerminalLog('LIVE', `Đã dừng thành công phiên ${sessionId}`, '#ff0055');
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
         // -------------------------------------------------------------
         // 2. LOGIC GIAO DIỆN HỆ THỐNG
         // -------------------------------------------------------------
@@ -799,6 +933,7 @@
 
             const titles = {
                 'dashboard': 'DASHBOARD CHÍNH',
+                'live-boost': 'TĂNG MẮT & QUẢN LÝ LIVE',
                 'vietsub': 'HỆ THỐNG VIETSUB & AI',
                 'hades': 'HADES V6100 HUB',
                 'smm': 'QUẢN LÝ ĐƠN HÀNG SMM',
@@ -819,7 +954,7 @@
         }, 1000);
 
         // -------------------------------------------------------------
-        // 3. LOGIC TRÌNH EDIT VIDEO, VIETSUB & AI (TỐI ƯU KHÔNG KHỰNG)
+        // 3. LOGIC TRÌNH EDIT VIDEO, VIETSUB & AI
         // -------------------------------------------------------------
         const smartLinkInput = document.getElementById('smartLinkInput');
         const videoUpload = document.getElementById('videoUpload');
@@ -868,25 +1003,23 @@
 
         renderSubList();
 
-        // Tự động load link Dropbox mẫu sẵn có khi vừa mở trang
         window.addEventListener('DOMContentLoaded', () => {
-            loadVideoFromInput(smartLinkInput.value.trim());
+            if (smartLinkInput && smartLinkInput.value.trim()) {
+                loadVideoFromInput(smartLinkInput.value.trim());
+            }
         });
 
-        smartLinkInput.addEventListener('change', () => {
+        smartLinkInput?.addEventListener('change', () => {
             loadVideoFromInput(smartLinkInput.value.trim());
         });
 
         function loadVideoFromInput(url) {
             if (!url) return;
             let finalUrl = url;
-            // Xử lý link Dropbox trực tiếp
             if (url.includes('dropbox.com')) {
                 finalUrl = url.replace('dl=0', 'raw=1');
                 if (!finalUrl.includes('raw=1')) finalUrl += (finalUrl.includes('?') ? '&' : '?') + 'raw=1';
-            }
-            // Xử lý link Google Drive
-            else if (url.includes('drive.google.com')) {
+            } else if (url.includes('drive.google.com')) {
                 const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
                 if (match && match[1]) {
                     finalUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
@@ -897,16 +1030,16 @@
             videoPlayer.load();
         }
 
-        videoFilterSelect.addEventListener('change', (e) => {
+        videoFilterSelect?.addEventListener('change', (e) => {
             videoPlayer.style.filter = e.target.value;
         });
 
-        videoAspectSelect.addEventListener('change', (e) => {
+        videoAspectSelect?.addEventListener('change', (e) => {
             videoPlayer.style.width = e.target.value;
             videoPlayer.style.margin = '0 auto';
         });
 
-        previewTrimBtn.addEventListener('click', () => {
+        previewTrimBtn?.addEventListener('click', () => {
             const start = parseFloat(trimStart.value) || 0;
             videoPlayer.currentTime = start;
             videoPlayer.play();
@@ -919,7 +1052,7 @@
             }, 200);
         });
 
-        snapshotBtn.addEventListener('click', () => {
+        snapshotBtn?.addEventListener('click', () => {
             if (!videoPlayer.src) return alert("Chưa có video để chụp ảnh!");
             const canvas = document.createElement('canvas');
             canvas.width = videoPlayer.videoWidth || 1280;
@@ -933,20 +1066,18 @@
             link.click();
         });
 
-        exportEditedVideoBtn.addEventListener('click', () => {
+        exportEditedVideoBtn?.addEventListener('click', () => {
             alert("Trình biên tập đã ghi nhận thông số cắt từ giây " + trimStart.value + " đến " + trimEnd.value + " cùng bộ lọc hình ảnh thành công!");
         });
 
-        // -------------------------------------------------------------
-        // KHẮC PHỤC TRIỆT ĐỂ LỖI KHỰNG VIDEO DO AI SPEECH RECOGNITION
-        // -------------------------------------------------------------
+        // AI SPEECH RECOGNITION
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
-            recognition.continuous = false; // Đổi thành false để tránh xung đột phần cứng phần mềm trên mobile/browser
+            recognition.continuous = false;
             recognition.interimResults = false;
 
-            startAiListeningBtn.addEventListener('click', () => {
+            startAiListeningBtn?.addEventListener('click', () => {
                 if (!videoPlayer.src) {
                     alert("Vui lòng tải hoặc chọn video trước khi bật AI nghe!");
                     return;
@@ -983,19 +1114,12 @@
                 aiStartTimestamp = currentVideoTime;
             };
 
-            recognition.onerror = (event) => {
-                console.warn("Speech recognition warning:", event.error);
-            };
-
-            // Tự khởi động lại mượt mà khi kết thúc một câu mà không làm khựng video
             recognition.onend = () => {
                 if (isAiListening && !videoPlayer.paused) {
-                    try {
-                        recognition.start();
-                    } catch (e) {}
+                    try { recognition.start(); } catch (e) {}
                 }
             };
-        } else {
+        } else if (startAiListeningBtn) {
             startAiListeningBtn.disabled = true;
             startAiListeningBtn.innerText = "❌ Trình duyệt không hỗ trợ Web Speech AI";
         }
@@ -1005,34 +1129,36 @@
             if (recognition) {
                 try { recognition.stop(); } catch(e){}
             }
-            startAiListeningBtn.innerText = "🎙️ Bật AI Nghe Âm Thanh";
-            startAiListeningBtn.classList.remove('active');
+            if (startAiListeningBtn) {
+                startAiListeningBtn.innerText = "🎙️ Bật AI Nghe Âm Thanh";
+                startAiListeningBtn.classList.remove('active');
+            }
         }
 
-        playbackSpeed.addEventListener('change', (e) => {
+        playbackSpeed?.addEventListener('change', (e) => {
             videoPlayer.playbackRate = parseFloat(e.target.value);
             speedLabel.innerText = e.target.value + 'x';
         });
 
-        subColorPicker.addEventListener('input', (e) => subtitleOverlay.style.color = e.target.value);
-        subFontSize.addEventListener('input', (e) => {
+        subColorPicker?.addEventListener('input', (e) => subtitleOverlay.style.color = e.target.value);
+        subFontSize?.addEventListener('input', (e) => {
             subtitleOverlay.style.fontSize = e.target.value + 'px';
             fontSizeLabel.innerText = e.target.value + 'px';
         });
 
         function showLoading(text = "Đang tải video...") {
-            loadingText.innerText = text;
-            loadingOverlay.style.display = 'flex';
+            if (loadingText) loadingText.innerText = text;
+            if (loadingOverlay) loadingOverlay.style.display = 'flex';
         }
-        function hideLoading() { loadingOverlay.style.display = 'none'; }
+        function hideLoading() { if (loadingOverlay) loadingOverlay.style.display = 'none'; }
 
-        videoPlayer.addEventListener('canplay', hideLoading);
-        videoPlayer.addEventListener('error', () => {
+        videoPlayer?.addEventListener('canplay', hideLoading);
+        videoPlayer?.addEventListener('error', () => {
             hideLoading();
             alert("Không thể phát video này trực tiếp qua link cloud. Hãy đảm bảo link có quyền Public hoặc dùng file từ máy!");
         });
 
-        videoUpload.addEventListener('change', (e) => {
+        videoUpload?.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 showLoading("Đang nạp video từ bộ nhớ máy...");
@@ -1041,7 +1167,7 @@
             }
         });
 
-        captureTimeBtn.addEventListener('click', () => {
+        captureTimeBtn?.addEventListener('click', () => {
             const currentTime = videoPlayer.currentTime;
             if (!startTimeInput.value) {
                 startTimeInput.value = currentTime.toFixed(2);
@@ -1050,7 +1176,7 @@
             }
         });
 
-        saveSubBtn.addEventListener('click', () => {
+        saveSubBtn?.addEventListener('click', () => {
             const start = parseFloat(startTimeInput.value);
             const end = parseFloat(endTimeInput.value);
             const text = subTextInput.value.trim();
@@ -1081,13 +1207,14 @@
             saveSubBtn.className = "btn btn-success";
             cancelEditBtn.style.display = "none";
         }
-        cancelEditBtn.addEventListener('click', resetForm);
+        cancelEditBtn?.addEventListener('click', resetForm);
 
-        quickSearchInput.addEventListener('input', (e) => {
+        quickSearchInput?.addEventListener('input', (e) => {
             renderSubList(e.target.value.toLowerCase());
         });
 
         function renderSubList(filter = '') {
+            if (!subListContainer) return;
             const filteredSubs = subtitles.map((sub, originalIndex) => ({ ...sub, originalIndex }))
                                          .filter(sub => sub.text.toLowerCase().includes(filter));
 
@@ -1136,7 +1263,7 @@
 
         function saveAndRefresh() {
             localStorage.setItem('vietsub_data', JSON.stringify(subtitles));
-            renderSubList(quickSearchInput.value.toLowerCase());
+            renderSubList(quickSearchInput ? quickSearchInput.value.toLowerCase() : '');
 
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
@@ -1146,7 +1273,7 @@
             }
         }
 
-        videoPlayer.addEventListener('timeupdate', () => {
+        videoPlayer?.addEventListener('timeupdate', () => {
             const currentTime = videoPlayer.currentTime;
             const currentSub = subtitles.find(sub => currentTime >= sub.start && currentTime <= sub.end);
             if (currentSub) {
@@ -1157,7 +1284,7 @@
             }
         });
 
-        srtUpload.addEventListener('change', (e) => {
+        srtUpload?.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
@@ -1186,7 +1313,7 @@
             return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
         }
 
-        exportExcelBtn.addEventListener('click', () => {
+        exportExcelBtn?.addEventListener('click', () => {
             if (subtitles.length === 0) return alert("Chưa có dữ liệu để xuất!");
             let csvContent = "\uFEFFSTT,Start (s),End (s),Content\n";
             subtitles.forEach((sub, index) => {
@@ -1202,7 +1329,7 @@
             dl.remove();
         });
 
-        exportHistoryBtn.addEventListener('click', () => {
+        exportHistoryBtn?.addEventListener('click', () => {
             if (subtitles.length === 0) return alert("Chưa có dữ liệu!");
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(subtitles, null, 2));
             const dl = document.createElement('a');
@@ -1213,7 +1340,7 @@
             dl.remove();
         });
 
-        exportSrtBtn.addEventListener('click', () => {
+        exportSrtBtn?.addEventListener('click', () => {
             if (subtitles.length === 0) return alert("Không có phụ đề!");
             let srtContent = "";
             subtitles.forEach((sub, index) => {
@@ -1229,7 +1356,7 @@
             document.body.removeChild(a);
         });
 
-        clearAllBtn.addEventListener('click', () => {
+        clearAllBtn?.addEventListener('click', () => {
             if (confirm("Xóa toàn bộ phụ đề?")) {
                 subtitles = [];
                 localStorage.removeItem('vietsub_data');
@@ -1247,6 +1374,7 @@
 
         function addLinkInput() {
             const container = document.getElementById('linkInputsContainer');
+            if (!container) return;
             const rowCount = container.children.length + 1;
             const div = document.createElement('div');
             div.className = 'link-input-row';
