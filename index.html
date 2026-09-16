@@ -346,7 +346,7 @@
 
         .terminal-container { background-color: #05070d; border: 1px solid #00f3ff66; border-radius: 8px; padding: 12px; margin-top: 15px; }
         .terminal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #00f3ff33; padding-bottom: 6px; margin-bottom: 8px; font-size: 11px; color: #00f3ff; }
-        .terminal-body { height: 100px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #00ff66; display: flex; flex-direction: column; gap: 4px; }
+        .terminal-body { height: 110px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #00ff66; display: flex; flex-direction: column; gap: 4px; }
         .log-item { display: flex; gap: 8px; word-break: break-all; }
         .log-time { color: #8b9bb4; flex-shrink: 0; }
 
@@ -632,8 +632,8 @@
                     
                     <div class="form-row" style="margin-top: 10px;">
                         <div class="form-group">
-                            <label><i class="fas fa-server"></i> Endpoints WebSocket chính</label>
-                            <input type="text" class="form-control" id="wsEndpoint" value="wss://">
+                            <label><i class="fas fa-server"></i> Endpoints WebSocket chính (Railway URL)</label>
+                            <input type="text" class="form-control" id="wsEndpoint" value="">
                         </div>
                         <div class="form-group">
                             <label><i class="fas fa-key"></i> Khóa Mã Hóa Token Session</label>
@@ -655,7 +655,7 @@
                     </div>
 
                     <div style="margin-top: 15px;">
-                        <button class="btn-cyber" onclick="saveSettings()"><i class="fas fa-save"></i> Lưu thiết lập</button>
+                        <button class="btn-cyber" onclick="saveSettings()"><i class="fas fa-save"></i> Lưu & Áp dụng thiết lập</button>
                     </div>
                 </div>
             </div>
@@ -677,77 +677,101 @@
         </div>
     </div>
 
-    <!-- JavaScript Gộp Hoàn Chỉnh -->
+    <!-- JavaScript Gộp Hoàn Chỉnh (Đã Sửa Lỗi WebSocket) -->
     <script>
         // -------------------------------------------------------------
-        // 1. WEBSOCKET ENGINE (Mã Tích Hợp)
+        // 1. WEBSOCKET ENGINE (Đã Sửa Route `/` Chuẩn Railway)
         // -------------------------------------------------------------
-        let ws;
+        let ws = null;
+        let reconnectTimer = null;
 
         function initWebSocket() {
-            // Tự động chọn wss:// nếu trang web chạy https://
+            // Đóng kết nối cũ nếu có
+            if (ws) {
+                ws.onclose = null;
+                ws.onerror = null;
+                ws.close();
+            }
+
+            if (reconnectTimer) clearTimeout(reconnectTimer);
+
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws`;
+            const customEndpoint = document.getElementById('wsEndpoint')?.value.trim();
+
+            // Ưu tiên endpoint tùy chỉnh nếu người dùng nhập; mặc định nối trực tiếp vào đường dẫn gốc `/`
+            let wsUrl = (customEndpoint && customEndpoint !== 'wss://' && customEndpoint !== 'ws://') 
+                ? customEndpoint 
+                : `${protocol}//${window.location.host}/`;
+
+            // Kiểm tra định dạng wss:// hoặc ws://
+            if (!wsUrl.startsWith('ws://') && !wsUrl.startsWith('wss://')) {
+                wsUrl = `${protocol}//${wsUrl}`;
+            }
 
             const wsUrlDisplay = document.getElementById('wsUrlDisplay');
             if (wsUrlDisplay) wsUrlDisplay.innerText = `Server: ${wsUrl}`;
 
-            ws = new WebSocket(wsUrl);
+            addTerminalLog('SYSTEM', `[WS] Đang kết nối tới: ${wsUrl}`, '#ffc107');
 
-            ws.onopen = () => {
-                console.log('[WS] Đã kết nối thành công!');
-                updateStatusUI(true);
-                addTerminalLog('SYSTEM', '[WS] Kết nối WebSocket thành công!', '#00ff66');
-            };
+            try {
+                ws = new WebSocket(wsUrl);
 
-            ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    
-                    // Khởi tạo trạng thái ban đầu từ server
-                    if (data.type === 'INIT_STATE' && data.data) {
-                        if (data.data.botCount) updateBotCount(data.data.botCount);
+                ws.onopen = () => {
+                    console.log('[WS] Đã kết nối thành công!');
+                    updateStatusUI(true);
+                    addTerminalLog('SYSTEM', '[WS] Kết nối WebSocket thành công!', '#00ff66');
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        
+                        // Khởi tạo trạng thái từ server
+                        if (data.type === 'INIT_STATE' && data.data) {
+                            if (data.data.botCount !== undefined) updateBotCount(data.data.botCount);
+                        }
+
+                        // Phản hồi PONG
+                        if (data.type === 'PONG') {
+                            const latency = Date.now() - data.timestamp;
+                            const pingElem = document.getElementById('v6100-pingRes');
+                            if (pingElem) pingElem.innerText = `${latency} ms`;
+                        }
+                        
+                        // Cập nhật số lượng Bot
+                        if (data.type === 'BOT_COUNT_UPDATED') {
+                            updateBotCount(data.count);
+                            addTerminalLog('SERVER', `Cập nhật số lượng Bot: ${data.count}`, '#00f3ff');
+                        }
+
+                        // Lệnh tin nhắn từ Telegram
+                        if (data.type === 'TELEGRAM_COMMAND' && data.data) {
+                            addTerminalLog('TELEGRAM', `@${data.data.user}: ${data.data.text}`, '#a855f7');
+                        }
+
+                        // Log từ Server
+                        if (data.type === 'NEW_LOG') {
+                            addTerminalLog('SERVER_LOG', data.data, '#ffc107');
+                        }
+                    } catch (e) {
+                        console.error('[WS] Lỗi giải mã JSON:', e);
                     }
+                };
 
-                    // Xử lý phản hồi PONG để tính Latency
-                    if (data.type === 'PONG') {
-                        const latency = Date.now() - data.timestamp;
-                        const pingElem = document.getElementById('v6100-pingRes');
-                        if (pingElem) pingElem.innerText = `${latency} ms`;
-                    }
-                    
-                    // Cập nhật Bot count từ Server / Telegram
-                    if (data.type === 'BOT_COUNT_UPDATED') {
-                        console.log('Cập nhật Bot count:', data.count);
-                        updateBotCount(data.count);
-                        addTerminalLog('SERVER', `Đã cập nhật số lượng Bot: ${data.count}`, '#00f3ff');
-                    }
+                ws.onclose = (evt) => {
+                    updateStatusUI(false);
+                    addTerminalLog('SYSTEM', `[WS] Mất kết nối! Đang thử lại sau 3s...`, '#ff0055');
+                    reconnectTimer = setTimeout(initWebSocket, 3000);
+                };
 
-                    // Nhận lệnh / tin nhắn từ Telegram
-                    if (data.type === 'TELEGRAM_COMMAND' && data.data) {
-                        addTerminalLog('TELEGRAM', `@${data.data.user}: ${data.data.text}`, '#a855f7');
-                    }
-
-                    // Log hệ thống mới từ Server
-                    if (data.type === 'NEW_LOG') {
-                        addTerminalLog('SERVER_LOG', data.data, '#ffc107');
-                    }
-                } catch (e) {
-                    console.error('[WS] Lỗi giải mã JSON:', e);
-                }
-            };
-
-            ws.onclose = () => {
-                console.warn('[WS] Mất kết nối! Đang thử lại sau 3 giây...');
-                updateStatusUI(false);
-                addTerminalLog('SYSTEM', '[WS] Mất kết nối! Đang thử lại sau 3s...', '#ff0055');
-                setTimeout(initWebSocket, 3000); // Tự động kết nối lại
-            };
-
-            ws.onerror = (err) => {
-                console.error('[WS ERROR]', err);
-                ws.close();
-            };
+                ws.onerror = (err) => {
+                    console.error('[WS ERROR]', err);
+                    ws.close();
+                };
+            } catch (err) {
+                addTerminalLog('ERROR', `[WS] Lỗi khởi tạo: ${err.message}`, '#ff0055');
+                reconnectTimer = setTimeout(initWebSocket, 3000);
+            }
         }
 
         function updateStatusUI(isConnected) {
@@ -776,7 +800,7 @@
             terminalBody.scrollTop = terminalBody.scrollHeight;
         }
 
-        // Bắt sự kiện nút PING trên giao diện
+        // Bắt sự kiện Ping
         document.getElementById('v6100-btnPing')?.addEventListener('click', () => {
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: 'PING', timestamp: Date.now() }));
@@ -785,17 +809,21 @@
             }
         });
 
-        // Gắn sự kiện vào nút "KẾT NỐI WEBSOCKET"
+        // Nút Kết Nối Lại Thao Tác
         document.getElementById('v6100-btnConnectWs')?.addEventListener('click', () => {
-            if (!ws || ws.readyState === WebSocket.CLOSED) {
-                initWebSocket();
-            } else {
-                addTerminalLog('INFO', 'WebSocket đã được khởi tạo.', '#00f3ff');
-            }
+            initWebSocket();
         });
 
-        // Tự động kết nối khi tải trang
-        window.addEventListener('DOMContentLoaded', initWebSocket);
+        // Khởi chạy khi tải xong giao diện
+        window.addEventListener('DOMContentLoaded', () => {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const defaultWsUrl = `${protocol}//${window.location.host}/`;
+            const wsInput = document.getElementById('wsEndpoint');
+            if (wsInput && (!wsInput.value || wsInput.value === 'wss://')) {
+                wsInput.value = defaultWsUrl;
+            }
+            initWebSocket();
+        });
 
         // -------------------------------------------------------------
         // 2. LOGIC GIAO DIỆN HỆ THỐNG
@@ -929,7 +957,7 @@
         });
 
         exportEditedVideoBtn.addEventListener('click', () => {
-            alert("Trình biên tập đã ghi nhận thông số cắt từ giây " + trimStart.value + " đến " + trimEnd.value + " cùng bộ lọc hình ảnh. Quá trình render video ảo đã sẵn sàng xuất file!");
+            alert("Trình biên tập đã ghi nhận thông số cắt từ giây " + trimStart.value + " đến " + trimEnd.value + " cùng bộ lọc hình ảnh.");
         });
 
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1016,7 +1044,7 @@
         videoPlayer.addEventListener('canplay', hideLoading);
         videoPlayer.addEventListener('error', () => {
             hideLoading();
-            alert("Không thể phát video này trực tiếp qua link. Vui lòng tải video về máy rồi chọn lại file!");
+            alert("Không thể phát video trực tiếp qua link. Vui lòng tải file về máy và chọn từ bộ nhớ!");
         });
 
         videoUpload.addEventListener('change', (e) => {
@@ -1140,7 +1168,6 @@
             localStorage.setItem('vietsub_data', JSON.stringify(subtitles));
             renderSubList(quickSearchInput.value.toLowerCase());
 
-            // Đồng bộ danh sách phụ đề lên WebSocket Server nếu đang kết nối
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({
                     type: 'SYNC_SUBTITLES',
@@ -1265,7 +1292,8 @@
         }
 
         function saveSettings() {
-            addTerminalLog('SETTINGS', 'Đã lưu thiết lập hệ thống thành công.', '#00ff66');
+            initWebSocket();
+            addTerminalLog('SETTINGS', 'Đã lưu thiết lập và khởi động lại kết nối WebSocket.', '#00ff66');
         }
     </script>
 </body>
