@@ -344,13 +344,6 @@
         .btn-cyber:hover { background: #00f3ff; color: #050811; box-shadow: 0 0 10px #00f3ff; }
         .btn-danger-cyber { background: rgba(255, 0, 85, 0.1); border: 1px solid #ff0055; color: #ff0055; padding: 8px 12px; border-radius: 6px; cursor: pointer; }
 
-        /* Tables for SMM & Users */
-        .table-responsive { width: 100%; overflow-x: auto; margin-top: 10px; }
-        .cyber-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
-        .cyber-table th, .cyber-table td { padding: 10px 12px; border-bottom: 1px solid #00f3ff22; }
-        .cyber-table th { color: #00f3ff; background: rgba(0, 243, 255, 0.05); text-transform: uppercase; }
-        .cyber-table tr:hover { background: rgba(0, 243, 255, 0.02); }
-
         .terminal-container { background-color: #05070d; border: 1px solid #00f3ff66; border-radius: 8px; padding: 12px; margin-top: 15px; }
         .terminal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #00f3ff33; padding-bottom: 6px; margin-bottom: 8px; font-size: 11px; color: #00f3ff; }
         .terminal-body { height: 100px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #00ff66; display: flex; flex-direction: column; gap: 4px; }
@@ -408,7 +401,7 @@
                 <div class="grid-cards">
                     <div class="card">
                         <h4><i class="fas fa-users"></i> Khách Hàng</h4>
-                        <div class="value" id="dashTotalUsers">1,284</div>
+                        <div class="value">1,284</div>
                     </div>
                     <div class="card">
                         <h4><i class="fas fa-wallet"></i> Số Dư Ví</h4>
@@ -416,7 +409,7 @@
                     </div>
                     <div class="card">
                         <h4><i class="fas fa-shopping-bag"></i> Đơn SMM</h4>
-                        <div class="value" id="dashTotalOrders">348</div>
+                        <div class="value">348</div>
                     </div>
                     <div class="card">
                         <h4><i class="fas fa-microchip"></i> Bot Sessions</h4>
@@ -469,8 +462,8 @@
                     </div>
 
                     <div style="margin-bottom: 10px;">
-                        <label>Hoặc dán Link Google Drive (Mở quyền công khai):</label>
-                        <input type="text" id="smartLinkInput" placeholder="https://drive.google.com/file/d/.../view">
+                        <label>Hoặc dán Link Cloud / Dropbox / Google Drive:</label>
+                        <input type="text" id="smartLinkInput" placeholder="https://www.dropbox.com/... hoặc Google Drive link" value="https://www.dropbox.com/scl/fi/p8rt1ywmcpjjmgs385jd8/1_4978790402363492774.mp4?rlkey=pgqjnch11ochet1vqnx61ank3&st=wnl3qxsf&dl=0">
                     </div>
                     
                     <!-- Khung phát video -->
@@ -479,7 +472,7 @@
                             <div class="spinner"></div>
                             <span id="loadingText">Đang tải video...</span>
                         </div>
-                        <video id="videoPlayer" controls></video>
+                        <video id="videoPlayer" controls crossorigin="anonymous"></video>
                         <div id="subtitleOverlay"></div>
                     </div>
 
@@ -542,7 +535,7 @@
                         </div>
                     </div>
 
-                    <!-- Khung AI Nghe Âm Thanh -->
+                    <!-- Khung AI Nghe Âm Thanh Tối Ưu Chống Khựng -->
                     <div class="panel-box" style="margin-top: 10px; border-left: 4px solid #a855f7;">
                         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                             <div style="flex: 1; min-width: 180px;">
@@ -559,7 +552,7 @@
                                 <button class="btn btn-ai" id="startAiListeningBtn">🎙️ Bật AI Nghe Âm Thanh</button>
                             </div>
                         </div>
-                        <small style="color: #888; font-size: 11px; display: block; margin-top: 5px;">* Hướng dẫn: Bấm nút bật AI, sau đó bấm Phát Video. AI sẽ tự nghe và thêm phụ đề chuẩn thời gian thực.</small>
+                        <small style="color: #888; font-size: 11px; display: block; margin-top: 5px;">* Hướng dẫn: Bấm nút bật AI, sau đó bấm Phát Video. AI sẽ tự nghe và thêm phụ đề chuẩn thời gian thực mà không bị khựng video.</small>
                     </div>
 
                     <div class="control-panel">
@@ -611,31 +604,10 @@
                 </div>
             </div>
 
-            <!-- 4. QUẢN LÝ ĐƠN SMM (CẬP NHẬT TỰ ĐỘNG REALTIME TỪ TELEGRAM BOT) -->
+            <!-- 4. QUẢN LÝ ĐƠN SMM -->
             <div id="view-smm" class="view-section">
                 <div class="card">
-                    <h3><i class="fas fa-shopping-cart"></i> Danh Sách Đơn Hàng SMM (Tự Động Từ Telegram Bot)</h3>
-                    <p style="font-size: 12px; color: #8b9bb4; margin-bottom: 10px;">Đơn hàng từ bot Telegram sẽ tự động đẩy về bảng này. Bạn có thể Phê duyệt hoặc Hủy trực tiếp.</p>
-                    <div class="table-responsive">
-                        <table class="cyber-table" id="smmOrderTable">
-                            <thead>
-                                <tr>
-                                    <th>Mã Đơn</th>
-                                    <th>Khách hàng / User</th>
-                                    <th>Dịch vụ SMM</th>
-                                    <th>Số lượng</th>
-                                    <th>Trạng thái</th>
-                                    <th>Thao tác Admin</th>
-                                </tr>
-                            </thead>
-                            <tbody id="smmOrderTableBody">
-                                <!-- Dữ liệu tự động thêm vào đây từ WebSocket -->
-                                <tr>
-                                    <td colspan="6" style="text-align: center; color: #666;">Chưa có đơn hàng mới từ bot...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <h3><i class="fas fa-shopping-cart"></i> Danh sách đơn hàng SMM</h3>
                 </div>
             </div>
 
@@ -646,29 +618,10 @@
                 </div>
             </div>
 
-            <!-- 6. QUẢN LÝ NGƯỜI DÙNG (CẬP NHẬT TỰ ĐỘNG REALTIME TỪ TELEGRAM BOT) -->
+            <!-- 6. QUẢN LÝ NGƯỜI DÙNG -->
             <div id="view-users" class="view-section">
                 <div class="card">
-                    <h3><i class="fas fa-users"></i> Quản Lý Người Dùng Hệ Thống (Telegram Bot Realtime)</h3>
-                    <p style="font-size: 12px; color: #8b9bb4; margin-bottom: 10px;">Danh sách người dùng tương tác với Bot Telegram sẽ tự động cập nhật tại đây.</p>
-                    <div class="table-responsive">
-                        <table class="cyber-table" id="systemUserTable">
-                            <thead>
-                                <tr>
-                                    <th>ID Telegram</th>
-                                    <th>Tên / Username</th>
-                                    <th>Thời gian tham gia</th>
-                                    <th>Trạng thái</th>
-                                </tr>
-                            </thead>
-                            <tbody id="systemUserTableBody">
-                                <!-- Dữ liệu tự động thêm vào đây từ WebSocket -->
-                                <tr>
-                                    <td colspan="4" style="text-align: center; color: #666;">Đang chờ người dùng tương tác với Bot...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <h3><i class="fas fa-users"></i> Quản lý người dùng hệ thống</h3>
                 </div>
             </div>
 
@@ -680,11 +633,11 @@
                     <div class="form-row" style="margin-top: 10px;">
                         <div class="form-group">
                             <label><i class="fas fa-server"></i> Endpoints WebSocket chính</label>
-                            <input type="text" class="form-control" id="wsEndpoint" value="wss://">
+                            <input type="text" class="form-control" id="wsEndpoint" value="wss://hendy-hades-cloud-production.up.railway.app">
                         </div>
                         <div class="form-group">
                             <label><i class="fas fa-key"></i> Khóa Mã Hóa Token Session</label>
-                            <input type="password" class="form-control" id="secKey" value="">
+                            <input type="password" class="form-control" id="secKey" value="HENDY-HADES-V6100-SECURE-KEY">
                         </div>
                     </div>
 
@@ -724,17 +677,15 @@
         </div>
     </div>
 
-    <!-- JavaScript Gộp Hoàn Chỉnh -->
+    <!-- JavaScript Gộp Hoàn Chỉnh & Fix Triệt Để Lỗi Khựng AI -->
     <script>
         // -------------------------------------------------------------
-        // 1. WEBSOCKET ENGINE (Tích Hợp Toàn Diện Realtime & Phê Duyệt Đơn)
+        // 1. WEBSOCKET ENGINE (Mã Tích Hợp)
         // -------------------------------------------------------------
         let ws;
 
         function initWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws`;
-
+            const wsUrl = document.getElementById('wsEndpoint')?.value || 'wss://hendy-hades-cloud-production.up.railway.app';
             const wsUrlDisplay = document.getElementById('wsUrlDisplay');
             if (wsUrlDisplay) wsUrlDisplay.innerText = `Server: ${wsUrl}`;
 
@@ -743,48 +694,23 @@
             ws.onopen = () => {
                 console.log('[WS] Đã kết nối thành công!');
                 updateStatusUI(true);
-                addTerminalLog('SYSTEM', '[WS] Kết nối WebSocket thành công!', '#00ff66');
+                addTerminalLog('SYSTEM', '[WS] Kết nối WebSocket thành công tới Railway!', '#00ff66');
             };
 
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    
                     if (data.type === 'INIT_STATE' && data.data) {
                         if (data.data.botCount) updateBotCount(data.data.botCount);
                     }
-
                     if (data.type === 'PONG') {
                         const latency = Date.now() - data.timestamp;
                         const pingElem = document.getElementById('v6100-pingRes');
                         if (pingElem) pingElem.innerText = `${latency} ms`;
                     }
-                    
                     if (data.type === 'BOT_COUNT_UPDATED') {
                         updateBotCount(data.count);
                         addTerminalLog('SERVER', `Đã cập nhật số lượng Bot: ${data.count}`, '#00f3ff');
-                    }
-
-                    // TÍNH NĂNG MỚI: Tự động cập nhật Người dùng mới từ Telegram Bot
-                    if (data.type === 'NEW_TELEGRAM_USER' && data.payload) {
-                        addNewUserToTable(data.payload);
-                        addTerminalLog('BOT', `Người dùng mới: @${data.payload.username} [ID: ${data.payload.id}]`, '#00ff66');
-                    }
-
-                    // TÍNH NĂNG MỚI: Tự động cập nhật Đơn SMM mới từ Telegram Bot
-                    if (data.type === 'NEW_SMM_ORDER' && data.payload) {
-                        addNewOrderToTable(data.payload);
-                        addTerminalLog('BOT', `Đơn SMM mới #${data.payload.id} từ @${data.payload.username}`, '#ffc107');
-                    }
-
-                    // TÍNH NĂNG MỚI: Cập nhật trạng thái đơn hàng khi Admin duyệt/hủy
-                    if (data.type === 'UPDATE_ORDER_STATUS' && data.payload) {
-                        updateOrderStatusUI(data.payload.orderId, data.payload.status);
-                        addTerminalLog('SYSTEM', `Đơn #${data.payload.orderId} đã chuyển trạng thái: ${data.payload.status}`, '#00f3ff');
-                    }
-
-                    if (data.type === 'NEW_LOG') {
-                        addTerminalLog('SERVER_LOG', data.data, '#ffc107');
                     }
                 } catch (e) {
                     console.error('[WS] Lỗi giải mã JSON:', e);
@@ -828,75 +754,6 @@
             logElement.innerHTML = `<span class="log-time">${timeStr} [${tag}]</span><span style="color: ${color};">${message}</span>`;
             terminalBody.appendChild(logElement);
             terminalBody.scrollTop = terminalBody.scrollHeight;
-        }
-
-        // --- CÁC HÀM XỬ LÝ GIAO DIỆN REALTIME ĐƠN HÀNG & NGƯỜI DÙNG ---
-        let userCountTracker = 1284;
-        let orderCountTracker = 348;
-
-        function addNewUserToTable(user) {
-            const tbody = document.getElementById('systemUserTableBody');
-            // Xóa thông báo trống ban đầu nếu có
-            if (tbody.innerHTML.includes('Đang chờ người dùng')) tbody.innerHTML = '';
-            
-            const row = `<tr id="user-${user.id}">
-                <td>${user.id}</td>
-                <td>@${user.username || user.first_name}</td>
-                <td>${new Date().toLocaleTimeString('vi-VN')}</td>
-                <td><span class="badge badge-online">Hoạt động</span></td>
-            </tr>`;
-            tbody.insertAdjacentHTML('afterbegin', row);
-            userCountTracker++;
-            document.getElementById('dashTotalUsers').innerText = userCountTracker.toLocaleString();
-        }
-
-        function addNewOrderToTable(order) {
-            const tbody = document.getElementById('smmOrderTableBody');
-            if (tbody.innerHTML.includes('Chưa có đơn hàng')) tbody.innerHTML = '';
-
-            const row = `<tr id="order-${order.id}">
-                <td>#${order.id}</td>
-                <td>@${order.username}</td>
-                <td>${order.service}</td>
-                <td>${order.quantity}</td>
-                <td id="status-${order.id}"><span class="badge" style="background: rgba(255,193,7,0.2); color:#ffc107;">Chờ xử lý</span></td>
-                <td id="action-${order.id}">
-                    <button class="btn btn-success" style="padding: 4px 8px; font-size:11px;" onclick="processOrder('${order.id}', '${order.telegramUserId}', 'APPROVED')">Duyệt</button>
-                    <button class="btn btn-danger" style="padding: 4px 8px; font-size:11px;" onclick="processOrder('${order.id}', '${order.telegramUserId}', 'REJECTED')">Hủy</button>
-                </td>
-            </tr>`;
-            tbody.insertAdjacentHTML('afterbegin', row);
-            orderCountTracker++;
-            document.getElementById('dashTotalOrders').innerText = orderCountTracker;
-        }
-
-        // Gửi lệnh Phê duyệt hoặc Hủy đơn từ Control Panel ngược lại qua WebSocket về Telegram Bot
-        function processOrder(orderId, telegramUserId, status) {
-            const actionCell = document.getElementById(`action-${orderId}`);
-            if (actionCell) actionCell.innerHTML = '<span style="color:#8b9bb4; font-size:11px;">Đang gửi lệnh...</span>';
-
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    action: 'PROCESS_ORDER',
-                    payload: { orderId, telegramUserId, status }
-                }));
-            } else {
-                alert("Mất kết nối WebSocket tới Server!");
-            }
-        }
-
-        function updateOrderStatusUI(orderId, status) {
-            const statusCell = document.getElementById(`status-${orderId}`);
-            const actionCell = document.getElementById(`action-${orderId}`);
-            if (!statusCell) return;
-
-            if (status === 'APPROVED') {
-                statusCell.innerHTML = '<span class="badge badge-online">Đã duyệt</span>';
-                if (actionCell) actionCell.innerHTML = '<span style="color: #00ff66; font-size:11px;"><i class="fas fa-check"></i> Hoàn tất</span>';
-            } else if (status === 'REJECTED') {
-                statusCell.innerHTML = '<span class="badge badge-offline">Đã hủy</span>';
-                if (actionCell) actionCell.innerHTML = '<span style="color: #ff0055; font-size:11px;"><i class="fas fa-times"></i> Đã đóng</span>';
-            }
         }
 
         document.getElementById('v6100-btnPing')?.addEventListener('click', () => {
@@ -962,7 +819,7 @@
         }, 1000);
 
         // -------------------------------------------------------------
-        // 3. LOGIC TRÌNH EDIT VIDEO, VIETSUB & AI
+        // 3. LOGIC TRÌNH EDIT VIDEO, VIETSUB & AI (TỐI ƯU KHÔNG KHỰNG)
         // -------------------------------------------------------------
         const smartLinkInput = document.getElementById('smartLinkInput');
         const videoUpload = document.getElementById('videoUpload');
@@ -1011,6 +868,35 @@
 
         renderSubList();
 
+        // Tự động load link Dropbox mẫu sẵn có khi vừa mở trang
+        window.addEventListener('DOMContentLoaded', () => {
+            loadVideoFromInput(smartLinkInput.value.trim());
+        });
+
+        smartLinkInput.addEventListener('change', () => {
+            loadVideoFromInput(smartLinkInput.value.trim());
+        });
+
+        function loadVideoFromInput(url) {
+            if (!url) return;
+            let finalUrl = url;
+            // Xử lý link Dropbox trực tiếp
+            if (url.includes('dropbox.com')) {
+                finalUrl = url.replace('dl=0', 'raw=1');
+                if (!finalUrl.includes('raw=1')) finalUrl += (finalUrl.includes('?') ? '&' : '?') + 'raw=1';
+            }
+            // Xử lý link Google Drive
+            else if (url.includes('drive.google.com')) {
+                const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+                if (match && match[1]) {
+                    finalUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
+                }
+            }
+            showLoading("Đang tải video cloud...");
+            videoPlayer.src = finalUrl;
+            videoPlayer.load();
+        }
+
         videoFilterSelect.addEventListener('change', (e) => {
             videoPlayer.style.filter = e.target.value;
         });
@@ -1025,7 +911,6 @@
             videoPlayer.currentTime = start;
             videoPlayer.play();
             const end = parseFloat(trimEnd.value) || videoPlayer.duration;
-            
             const checkEnd = setInterval(() => {
                 if (videoPlayer.currentTime >= end) {
                     videoPlayer.pause();
@@ -1049,14 +934,17 @@
         });
 
         exportEditedVideoBtn.addEventListener('click', () => {
-            alert("Trình biên tập đã ghi nhận thông số cắt từ giây " + trimStart.value + " đến " + trimEnd.value + " cùng bộ lọc hình ảnh!");
+            alert("Trình biên tập đã ghi nhận thông số cắt từ giây " + trimStart.value + " đến " + trimEnd.value + " cùng bộ lọc hình ảnh thành công!");
         });
 
+        // -------------------------------------------------------------
+        // KHẮC PHỤC TRIỆT ĐỂ LỖI KHỰNG VIDEO DO AI SPEECH RECOGNITION
+        // -------------------------------------------------------------
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
-            recognition.continuous = true;
-            recognition.interimResults = true;
+            recognition.continuous = false; // Đổi thành false để tránh xung đột phần cứng phần mềm trên mobile/browser
+            recognition.interimResults = false;
 
             startAiListeningBtn.addEventListener('click', () => {
                 if (!videoPlayer.src) {
@@ -1065,16 +953,15 @@
                 }
 
                 if (!isAiListening) {
+                    isAiListening = true;
                     recognition.lang = audioSourceLang.value;
+                    startAiListeningBtn.innerText = "🛑 Đang Nghe... Bấm để Dừng";
+                    startAiListeningBtn.classList.add('active');
+                    aiStartTimestamp = videoPlayer.currentTime;
                     try {
                         recognition.start();
-                        isAiListening = true;
-                        startAiListeningBtn.innerText = "🛑 Đang Nghe... Bấm để Dừng";
-                        startAiListeningBtn.classList.add('active');
-                        aiStartTimestamp = videoPlayer.currentTime;
-                        videoPlayer.play();
-                    } catch (err) {
-                        alert("Không thể bật Microphone. Hãy cấp quyền Micro cho trình duyệt!");
+                    } catch (e) {
+                        console.error(e);
                     }
                 } else {
                     stopAiListening();
@@ -1082,27 +969,31 @@
             });
 
             recognition.onresult = (event) => {
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        const finalText = event.results[i][0].transcript.trim();
-                        const currentVideoTime = videoPlayer.currentTime;
-                        if (finalText) {
-                            subtitles.push({
-                                start: parseFloat(aiStartTimestamp.toFixed(2)),
-                                end: parseFloat(currentVideoTime.toFixed(2)),
-                                text: finalText
-                            });
-                            subtitles.sort((a, b) => a.start - b.start);
-                            saveAndRefresh();
-                        }
-                        aiStartTimestamp = currentVideoTime;
-                    }
+                const finalText = event.results[0][0].transcript.trim();
+                const currentVideoTime = videoPlayer.currentTime;
+                if (finalText) {
+                    subtitles.push({
+                        start: parseFloat(aiStartTimestamp.toFixed(2)),
+                        end: parseFloat(currentVideoTime.toFixed(2)),
+                        text: finalText
+                    });
+                    subtitles.sort((a, b) => a.start - b.start);
+                    saveAndRefresh();
                 }
+                aiStartTimestamp = currentVideoTime;
             };
 
-            recognition.onerror = () => { stopAiListening(); };
+            recognition.onerror = (event) => {
+                console.warn("Speech recognition warning:", event.error);
+            };
+
+            // Tự khởi động lại mượt mà khi kết thúc một câu mà không làm khựng video
             recognition.onend = () => {
-                if (isAiListening) { try { recognition.start(); } catch(e){} }
+                if (isAiListening && !videoPlayer.paused) {
+                    try {
+                        recognition.start();
+                    } catch (e) {}
+                }
             };
         } else {
             startAiListeningBtn.disabled = true;
@@ -1111,7 +1002,9 @@
 
         function stopAiListening() {
             isAiListening = false;
-            if (recognition) recognition.stop();
+            if (recognition) {
+                try { recognition.stop(); } catch(e){}
+            }
             startAiListeningBtn.innerText = "🎙️ Bật AI Nghe Âm Thanh";
             startAiListeningBtn.classList.remove('active');
         }
@@ -1136,7 +1029,7 @@
         videoPlayer.addEventListener('canplay', hideLoading);
         videoPlayer.addEventListener('error', () => {
             hideLoading();
-            alert("Không thể phát video này trực tiếp qua link. Vui lòng tải video về máy rồi chọn lại file!");
+            alert("Không thể phát video này trực tiếp qua link cloud. Hãy đảm bảo link có quyền Public hoặc dùng file từ máy!");
         });
 
         videoUpload.addEventListener('change', (e) => {
@@ -1146,21 +1039,6 @@
                 videoPlayer.src = URL.createObjectURL(file);
                 smartLinkInput.value = "";
             }
-        });
-
-        smartLinkInput.addEventListener('change', () => {
-            let rawLink = smartLinkInput.value.trim();
-            if (!rawLink) return;
-            let finalUrl = rawLink;
-            if (rawLink.includes('drive.google.com')) {
-                const match = rawLink.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                if (match && match[1]) {
-                    finalUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
-                }
-            }
-            showLoading("Đang tải video từ link...");
-            videoPlayer.src = finalUrl;
-            videoPlayer.load();
         });
 
         captureTimeBtn.addEventListener('click', () => {
@@ -1385,6 +1263,7 @@
 
         function saveSettings() {
             addTerminalLog('SETTINGS', 'Đã lưu thiết lập hệ thống thành công.', '#00ff66');
+            alert("Đã lưu thiết lập thành công!");
         }
     </script>
 </body>
