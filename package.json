@@ -1,28 +1,20 @@
 {
   "name": "master-control-panel-v6100",
-  "version": "3.8.7",
-  "description": "Master Control Panel - Hendy & Hades V6100 PRO System Tích hợp Ultimate Bot V3.8",
+  "version": "3.8.8",
+  "description": "Master Control Panel - Hendy & Hades V6100 PRO Tích hợp Live Viewers Engine",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
-  "keywords": [
-    "control-panel",
-    "websocket",
-    "cyberpunk-ui",
-    "bot-automation",
-    "tampermonkey-sync"
-  ],
-  "author": "Hendy",
-  "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "tiktok-live-connector": "^1.1.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
   }
-} 
+}
