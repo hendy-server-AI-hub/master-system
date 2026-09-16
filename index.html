@@ -256,7 +256,7 @@
             word-break: break-all;
         }
 
-        /* Tích hợp Vietsub & AI Styles */
+        /* Vietsub & AI Styles */
         .video-box { position: relative; width: 100%; background: #000; border-radius: 6px; overflow: hidden; margin-top: 10px; border: 1px solid #00f3ff44; }
         video { width: 100%; display: block; transition: filter 0.3s ease; }
         
@@ -334,7 +334,6 @@
         .badge-online { background: rgba(0, 255, 102, 0.2); color: #00ff66; border: 1px solid #00ff6666; }
         .badge-offline { background: rgba(255, 0, 85, 0.2); color: #ff0055; border: 1px solid #ff005566; }
 
-        /* Các style khác từ code V6100 PRO */
         .form-group { margin-bottom: 12px; }
         .form-control { width: 100%; background-color: #05070d; border: 1px solid #00f3ff44; color: #ffffff; padding: 8px 10px; border-radius: 6px; font-size: 12px; outline: none; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -414,7 +413,7 @@
                     </div>
                     <div class="card">
                         <h4><i class="fas fa-microchip"></i> Bot Sessions</h4>
-                        <div class="value">12 / 12</div>
+                        <div class="value" id="botCountCardValue">12 Active</div>
                     </div>
                 </div>
 
@@ -423,12 +422,12 @@
                     <div class="dashboard-grid">
                         <div class="status-card">
                             <h4>📡 Trạng thái WebSocket</h4>
-                            <span id="wsStatusBadge" class="badge badge-offline">Đang ngắt kết nối</span>
+                            <span id="v6100-wsBadge" class="badge badge-offline">Mất kết nối</span>
                             <div style="font-size: 11px; color: #888; margin-top: 5px;" id="wsUrlDisplay">Server: WSS Ready</div>
                         </div>
                         <div class="status-card">
                             <h4>⚡ Network Latency Monitor</h4>
-                            <div style="font-size: 16px; font-weight: bold; color: #00ff66;" id="pingResult">-- ms</div>
+                            <div style="font-size: 16px; font-weight: bold; color: #00ff66;" id="v6100-pingRes">-- ms</div>
                         </div>
                         <div class="status-card">
                             <h4>🤖 Bot Accounts Pool</h4>
@@ -436,13 +435,13 @@
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px; margin-top: 10px;">
-                        <button class="btn btn-info" id="connectWsBtn">Kết Nối WebSocket</button>
-                        <button class="btn btn-warning" id="pingCheckBtn">Kiểm Tra Ping Ngay</button>
+                        <button class="btn btn-info" id="v6100-btnConnectWs">Kết Nối WebSocket</button>
+                        <button class="btn btn-warning" id="v6100-btnPing">Kiểm Tra Ping Ngay</button>
                     </div>
                 </div>
             </div>
 
-            <!-- 2. HỆ THỐNG VIETSUB & AI (Đã tích hợp Trình Chỉnh Sửa Video) -->
+            <!-- 2. HỆ THỐNG VIETSUB & AI -->
             <div id="view-vietsub" class="view-section">
                 <div class="card" style="padding: 15px;">
                     <h3 style="margin-bottom: 12px;"><i class="fas fa-closed-captioning"></i> Trình Điều Khiển Vietsub, AI & Chỉnh Sửa Video</h3>
@@ -477,7 +476,7 @@
                         <div id="subtitleOverlay"></div>
                     </div>
 
-                    <!-- BẢNG ĐIỀU KHIỂN & CHỈNH SỬA VIDEO MỚI TÍCH HỢP -->
+                    <!-- BẢNG ĐIỀU KHIỂN CHỈNH SỬA VIDEO -->
                     <div class="panel-box" style="margin-top: 15px; border-left: 4px solid #00f3ff;">
                         <h4 style="color: #00f3ff; margin-bottom: 10px;"><i class="fas fa-film"></i> Trình Chỉnh Sửa Video Trực Tuyến</h4>
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 10px;">
@@ -680,6 +679,127 @@
 
     <!-- JavaScript Gộp Hoàn Chỉnh -->
     <script>
+        // -------------------------------------------------------------
+        // 1. WEBSOCKET ENGINE (Mã Tích Hợp)
+        // -------------------------------------------------------------
+        let ws;
+
+        function initWebSocket() {
+            // Tự động chọn wss:// nếu trang web chạy https://
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws`;
+
+            const wsUrlDisplay = document.getElementById('wsUrlDisplay');
+            if (wsUrlDisplay) wsUrlDisplay.innerText = `Server: ${wsUrl}`;
+
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('[WS] Đã kết nối thành công!');
+                updateStatusUI(true);
+                addTerminalLog('SYSTEM', '[WS] Kết nối WebSocket thành công!', '#00ff66');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    
+                    // Khởi tạo trạng thái ban đầu từ server
+                    if (data.type === 'INIT_STATE' && data.data) {
+                        if (data.data.botCount) updateBotCount(data.data.botCount);
+                    }
+
+                    // Xử lý phản hồi PONG để tính Latency
+                    if (data.type === 'PONG') {
+                        const latency = Date.now() - data.timestamp;
+                        const pingElem = document.getElementById('v6100-pingRes');
+                        if (pingElem) pingElem.innerText = `${latency} ms`;
+                    }
+                    
+                    // Cập nhật Bot count từ Server / Telegram
+                    if (data.type === 'BOT_COUNT_UPDATED') {
+                        console.log('Cập nhật Bot count:', data.count);
+                        updateBotCount(data.count);
+                        addTerminalLog('SERVER', `Đã cập nhật số lượng Bot: ${data.count}`, '#00f3ff');
+                    }
+
+                    // Nhận lệnh / tin nhắn từ Telegram
+                    if (data.type === 'TELEGRAM_COMMAND' && data.data) {
+                        addTerminalLog('TELEGRAM', `@${data.data.user}: ${data.data.text}`, '#a855f7');
+                    }
+
+                    // Log hệ thống mới từ Server
+                    if (data.type === 'NEW_LOG') {
+                        addTerminalLog('SERVER_LOG', data.data, '#ffc107');
+                    }
+                } catch (e) {
+                    console.error('[WS] Lỗi giải mã JSON:', e);
+                }
+            };
+
+            ws.onclose = () => {
+                console.warn('[WS] Mất kết nối! Đang thử lại sau 3 giây...');
+                updateStatusUI(false);
+                addTerminalLog('SYSTEM', '[WS] Mất kết nối! Đang thử lại sau 3s...', '#ff0055');
+                setTimeout(initWebSocket, 3000); // Tự động kết nối lại
+            };
+
+            ws.onerror = (err) => {
+                console.error('[WS ERROR]', err);
+                ws.close();
+            };
+        }
+
+        function updateStatusUI(isConnected) {
+            const badge = document.getElementById('v6100-wsBadge');
+            if (badge) {
+                badge.innerText = isConnected ? 'Đã kết nối (Online)' : 'Mất kết nối';
+                badge.className = isConnected ? 'badge badge-online' : 'badge badge-offline';
+            }
+        }
+
+        function updateBotCount(count) {
+            const botInfo = document.getElementById('botCountInfo');
+            const botCard = document.getElementById('botCountCardValue');
+            if (botInfo) botInfo.innerText = `Số lượng Bot: ${count} Active`;
+            if (botCard) botCard.innerText = `${count} Active`;
+        }
+
+        function addTerminalLog(tag, message, color = '#00ff66') {
+            const terminalBody = document.getElementById('terminalLogs');
+            if (!terminalBody) return;
+            const timeStr = '[' + new Date().toTimeString().split(' ')[0] + ']';
+            const logElement = document.createElement('div');
+            logElement.className = 'log-item';
+            logElement.innerHTML = `<span class="log-time">${timeStr} [${tag}]</span><span style="color: ${color};">${message}</span>`;
+            terminalBody.appendChild(logElement);
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+        }
+
+        // Bắt sự kiện nút PING trên giao diện
+        document.getElementById('v6100-btnPing')?.addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'PING', timestamp: Date.now() }));
+            } else {
+                addTerminalLog('WARN', 'Chưa kết nối WebSocket!', '#ff0055');
+            }
+        });
+
+        // Gắn sự kiện vào nút "KẾT NỐI WEBSOCKET"
+        document.getElementById('v6100-btnConnectWs')?.addEventListener('click', () => {
+            if (!ws || ws.readyState === WebSocket.CLOSED) {
+                initWebSocket();
+            } else {
+                addTerminalLog('INFO', 'WebSocket đã được khởi tạo.', '#00f3ff');
+            }
+        });
+
+        // Tự động kết nối khi tải trang
+        window.addEventListener('DOMContentLoaded', initWebSocket);
+
+        // -------------------------------------------------------------
+        // 2. LOGIC GIAO DIỆN HỆ THỐNG
+        // -------------------------------------------------------------
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             if (window.innerWidth <= 900) {
@@ -716,59 +836,14 @@
             }
         }
 
-        // Đồng hồ thời gian thực
         setInterval(() => {
             const now = new Date();
             document.getElementById('clock').innerText = now.toTimeString().split(' ')[0];
         }, 1000);
 
-        // WebSocket & Network Latency Simulation
-        let ws = null;
-        const wsStatusBadge = document.getElementById('wsStatusBadge');
-        const pingResult = document.getElementById('pingResult');
-        const connectWsBtn = document.getElementById('connectWsBtn');
-        const pingCheckBtn = document.getElementById('pingCheckBtn');
-
-        connectWsBtn.addEventListener('click', () => {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws`;
-            document.getElementById('wsUrlDisplay').innerText = `Server: ${wsUrl}`;
-            
-            try {
-                ws = new WebSocket(wsUrl);
-                ws.onopen = () => {
-                    wsStatusBadge.innerText = "Đã kết nối (Online)";
-                    wsStatusBadge.className = "badge badge-online";
-                };
-                ws.onmessage = (event) => {
-                    try {
-                        const data = JSON.parse(event.data);
-                        if(data.type === 'PONG') {
-                            pingResult.innerText = `${Date.now() - data.timestamp} ms`;
-                        }
-                    } catch(e) {}
-                };
-                ws.onclose = () => {
-                    wsStatusBadge.innerText = "Mất kết nối";
-                    wsStatusBadge.className = "badge badge-offline";
-                };
-            } catch (err) {
-                alert("Không thể kết nối WebSocket Server.");
-            }
-        });
-
-        pingCheckBtn.addEventListener('click', () => {
-            const start = Date.now();
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({ type: 'PING', timestamp: start }));
-            } else {
-                setTimeout(() => {
-                    pingResult.innerText = `${Math.floor(Math.random() * 20) + 10} ms`;
-                }, 150);
-            }
-        });
-
-        // Xử lý Vietsub, AI & Trình Chỉnh Sửa Video Logic
+        // -------------------------------------------------------------
+        // 3. LOGIC TRÌNH EDIT VIDEO, VIETSUB & AI
+        // -------------------------------------------------------------
         const smartLinkInput = document.getElementById('smartLinkInput');
         const videoUpload = document.getElementById('videoUpload');
         const srtUpload = document.getElementById('srtUpload');
@@ -801,7 +876,6 @@
         const subListContainer = document.getElementById('subListContainer');
         const formTitle = document.getElementById('formTitle');
 
-        // Video Editor Elements
         const trimStart = document.getElementById('trimStart');
         const trimEnd = document.getElementById('trimEnd');
         const previewTrimBtn = document.getElementById('previewTrimBtn');
@@ -817,7 +891,6 @@
 
         renderSubList();
 
-        // Xử lý Bộ lọc và Tỷ lệ khung hình video trực tiếp
         videoFilterSelect.addEventListener('change', (e) => {
             videoPlayer.style.filter = e.target.value;
         });
@@ -1066,6 +1139,14 @@
         function saveAndRefresh() {
             localStorage.setItem('vietsub_data', JSON.stringify(subtitles));
             renderSubList(quickSearchInput.value.toLowerCase());
+
+            // Đồng bộ danh sách phụ đề lên WebSocket Server nếu đang kết nối
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'SYNC_SUBTITLES',
+                    data: subtitles
+                }));
+            }
         }
 
         videoPlayer.addEventListener('timeupdate', () => {
@@ -1184,13 +1265,7 @@
         }
 
         function saveSettings() {
-            const terminalBody = document.getElementById('terminalLogs');
-            const timeStr = '[' + new Date().toTimeString().split(' ')[0] + ']';
-            const logElement = document.createElement('div');
-            logElement.className = 'log-item';
-            logElement.innerHTML = `<span class="log-time">${timeStr}</span><span style="color: #00ff66;">[SUCCESS] Đã lưu thiết lập hệ thống thành công.</span>`;
-            terminalBody.appendChild(logElement);
-            terminalBody.scrollTop = terminalBody.scrollHeight;
+            addTerminalLog('SETTINGS', 'Đã lưu thiết lập hệ thống thành công.', '#00ff66');
         }
     </script>
 </body>
