@@ -3,29 +3,70 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const path = require('path');
+const https = require('https');
 const { WebSocketServer, WebSocket } = require('ws');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Cấu hình Telegram Bot từ biến môi trường
+const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '';
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Trạng thái lưu trữ tạm thời trong bộ nhớ
+// Trạng thái dữ liệu hệ thống tập trung
 let globalState = {
     botCount: 12,
     subtitles: [],
-    systemLogs: []
+    systemLogs: [],
+    lastTelegramUpdate: null
 };
 
 const server = http.createServer(app);
-
-// Khởi tạo WebSocket Server trên đường dẫn /ws
 const wss = new WebSocketServer({ server, path: '/ws' });
 
-// Hàm phát tin nhắn đến toàn bộ Clients (Broadcast)
+// -------------------------------------------------------------
+// 1. HAM TƯƠNG TÁC TELEGRAM BOT API
+// -------------------------------------------------------------
+function sendTelegramMessage(text) {
+    if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT_ID) {
+        console.warn('[TELEGRAM] Chưa cấu hình TELEGRAM_BOT_TOKEN hoặc TELEGRAM_CHAT_ID trong .env');
+        return;
+    }
+
+    const data = JSON.stringify({
+        chat_id: TELEGRAM_CHAT_ID,
+        text: text,
+        parse_mode: 'HTML'
+    });
+
+    const options = {
+        hostname: 'api.telegram.org',
+        port: 443,
+        path: `/bot${TELEGRAM_TOKEN}/sendMessage`,
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(data)
+        }
+    };
+
+    const req = https.request(options, (res) => {
+        res.on('data', () => {});
+    });
+
+    req.on('error', (e) => console.error('[TELEGRAM ERROR]', e.message));
+    req.write(data);
+    req.end();
+}
+
+// -------------------------------------------------------------
+// 2. WEBSOCKET BROADCAST & SYNC ENGINE
+// -------------------------------------------------------------
 function broadcast(data, senderWs = null) {
     const payload = JSON.stringify(data);
     wss.clients.forEach((client) => {
@@ -37,76 +78,114 @@ function broadcast(data, senderWs = null) {
 
 wss.on('connection', (ws, req) => {
     const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    console.log(`[+] Client kết nối từ: ${clientIp}`);
+    console.log(`[+] V6100 Dashboard kết nối từ IP: ${clientIp}`);
 
-    // Gửi trạng thái ban đầu cho Client mới
+    // Gửi dữ liệu đồng bộ ban đầu cho Dashboard
     ws.send(JSON.stringify({
         type: 'INIT_STATE',
         data: globalState
     }));
 
+    // Nhận dữ liệu từ V6100 Dashboard -> Xử lý & Gửi sang Telegram
     ws.on('message', (message) => {
         try {
             const parsed = JSON.parse(message);
 
             switch (parsed.type) {
-                // Phản hồi kiểm tra Latency Ping/Pong
                 case 'PING':
-                    ws.send(JSON.stringify({
-                        type: 'PONG',
-                        timestamp: parsed.timestamp
-                    }));
+                    ws.send(JSON.stringify({ type: 'PONG', timestamp: parsed.timestamp }));
                     break;
 
-                // Đồng bộ phụ đề Vietsub giữa các thiết bị
+                // [V6100 -> Server -> Telegram] Dashboard phát lệnh thông báo sang Telegram
+                case 'NOTIFY_TELEGRAM':
+                    sendTelegramMessage(`⚠️ <b>[V6100 ALERT]</b>\n${parsed.message}`);
+                    break;
+
+                // [V6100 -> Server -> Các Dashboard khác] Đồng bộ Phụ đề
                 case 'SYNC_SUBTITLES':
                     globalState.subtitles = parsed.data || [];
-                    broadcast({
-                        type: 'SUBTITLES_UPDATED',
-                        data: globalState.subtitles
-                    }, ws);
+                    broadcast({ type: 'SUBTITLES_UPDATED', data: globalState.subtitles }, ws);
                     break;
 
-                // Cập nhật Nhật ký hệ thống (Terminal Log)
+                // [V6100 -> Server -> Telegram & Dashboard khác] Thêm Log hệ thống
                 case 'ADD_LOG':
-                    globalState.systemLogs.push(parsed.data);
+                    const logEntry = parsed.data;
+                    globalState.systemLogs.push(logEntry);
                     if (globalState.systemLogs.length > 100) globalState.systemLogs.shift();
-                    broadcast({
-                        type: 'NEW_LOG',
-                        data: parsed.data
-                    });
+                    
+                    broadcast({ type: 'NEW_LOG', data: logEntry }, ws);
+                    
+                    // Nếu là log quan trọng (ERROR / SUCCESS), đồng bộ ngay lên Telegram
+                    if (logEntry.includes('[ERROR]') || logEntry.includes('[CRITICAL]')) {
+                        sendTelegramMessage(`🔴 <b>[SYSTEM LOG ERROR]</b>\n<code>${logEntry}</code>`);
+                    }
                     break;
 
                 default:
-                    console.log('Mã sự kiện không xác định:', parsed.type);
+                    console.log('[WS] Sự kiện không xác định:', parsed.type);
             }
         } catch (err) {
-            console.error('Lỗi giải mã JSON:', err.message);
+            console.error('[WS ERROR] Lỗi định dạng JSON:', err.message);
         }
     });
 
-    ws.on('close', () => console.log('[-] Client ngắt kết nối.'));
-    ws.on('error', (err) => console.error('Lỗi WebSocket Socket:', err));
+    ws.on('close', () => console.log('[-] Dashboard ngắt kết nối.'));
 });
 
-// Giữ kết nối (Heartbeat Ping) tránh tự động đóng kết nối trên môi trường Cloud (Railway/Heroku)
-setInterval(() => {
-    wss.clients.forEach((ws) => {
-        if (ws.readyState === WebSocket.OPEN) ws.ping();
-    });
-}, 30000);
+// -------------------------------------------------------------
+// 3. TELEGRAM WEBHOOK (Nhận dữ liệu Telegram -> Đẩy lên V6100)
+// -------------------------------------------------------------
+app.post(`/telegram-webhook`, (req, res) => {
+    const update = req.body;
 
-// Route HTTP kiểm tra trạng thái Server
+    if (update && update.message) {
+        const chatId = update.message.chat.id;
+        const text = update.message.text || '';
+        const user = update.message.from.username || update.message.from.first_name;
+
+        console.log(`[TELEGRAM INCOMING] Từ @${user}: ${text}`);
+
+        const telegramEvent = {
+            user: user,
+            text: text,
+            timestamp: new Date().toLocaleTimeString()
+        };
+
+        globalState.lastTelegramUpdate = telegramEvent;
+
+        // 1. Phát trực tiếp lệnh/tin nhắn Telegram lên tất cả Dashboard V6100 qua WebSocket
+        broadcast({
+            type: 'TELEGRAM_COMMAND',
+            data: telegramEvent
+        });
+
+        // 2. Xử lý một số câu lệnh Telegram phản hồi lại
+        if (text === '/status') {
+            sendTelegramMessage(`🤖 <b>[V6100 STATUS]</b>\n- Active Clients: ${wss.clients.size}\n- Bot Count: ${globalState.botCount}\n- Uptime: ${Math.floor(process.uptime())}s`);
+        } else if (text.startsWith('/botcount ')) {
+            const count = parseInt(text.split(' ')[1]);
+            if (!isNaN(count)) {
+                globalState.botCount = count;
+                broadcast({ type: 'BOT_COUNT_UPDATED', count: count });
+                sendTelegramMessage(`✅ Đã cập nhật Bot Sessions: <b>${count}</b>`);
+            }
+        }
+    }
+
+    res.sendStatus(200);
+});
+
+// Route kiểm tra trạng thái
 app.get('/api/status', (req, res) => {
-    res.json({
-        status: 'online',
-        system: 'Master Control Panel V6100 PRO',
-        activeClients: wss.clients.size,
-        uptime: process.uptime()
-    });
+    res.json({ status: 'online', activeClients: wss.clients.size, globalState });
 });
+
+// Heartbeat giữ kết nối
+setInterval(() => {
+    wss.clients.forEach((ws) => { if (ws.readyState === WebSocket.OPEN) ws.ping(); });
+}, 30000);
 
 server.listen(PORT, () => {
     console.log(`[V6100 PRO] Server đang chạy tại Cổng: ${PORT}`);
-    console.log(`[V6100 PRO] Endpoint WebSocket: wss://<domain>/ws`);
+    console.log(`[TELEGRAM SYNC] Webhook Endpoint: POST /telegram-webhook`);
 });
