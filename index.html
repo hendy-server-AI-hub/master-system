@@ -256,6 +256,34 @@
             word-break: break-all;
         }
 
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #05070d;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #00f3ff33;
+            font-size: 12px;
+        }
+
+        .data-table th, .data-table td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid #00f3ff22;
+        }
+
+        .data-table th {
+            background: rgba(0, 243, 255, 0.1);
+            color: #00f3ff;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .data-table tr:hover {
+            background: rgba(0, 243, 255, 0.03);
+        }
+
         /* Vietsub & AI Styles */
         .video-box { position: relative; width: 100%; background: #000; border-radius: 6px; overflow: hidden; margin-top: 10px; border: 1px solid #00f3ff44; }
         video { width: 100%; display: block; transition: filter 0.3s ease; }
@@ -369,8 +397,10 @@
             <li><a class="menu-link" onclick="switchTab('vietsub', this)"><i class="fas fa-closed-captioning"></i> Hệ Thống Vietsub & AI</a></li>
             <li><a class="menu-link" onclick="switchTab('hades', this)"><i class="fas fa-robot"></i> Hades V6100 Hub</a></li>
             <li><a class="menu-link" onclick="switchTab('smm', this)"><i class="fas fa-shopping-cart"></i> Quản lý Đơn SMM</a></li>
-            <li><a class="menu-link" onclick="switchTab('api', this)"><i class="fas fa-network-wired"></i> API Routes Manager</a></li>
             <li><a class="menu-link" onclick="switchTab('users', this)"><i class="fas fa-users"></i> Quản lý người dùng</a></li>
+            <li><a class="menu-link" onclick="switchTab('codes', this)"><i class="fas fa-ticket-alt"></i> Mua Code & Nhà Cái</a></li>
+            <li><a class="menu-link" onclick="switchTab('customer', this)"><i class="fas fa-id-card"></i> Trung Tâm Khách Hàng</a></li>
+            <li><a class="menu-link" onclick="switchTab('api', this)"><i class="fas fa-network-wired"></i> API Routes Manager</a></li>
             <li><a class="menu-link" onclick="switchTab('settings', this)"><i class="fas fa-cog"></i> Cài đặt & Bảo mật</a></li>
         </ul>
         <div class="sidebar-footer">
@@ -402,7 +432,7 @@
                 <div class="grid-cards">
                     <div class="card">
                         <h4><i class="fas fa-users"></i> Khách Hàng</h4>
-                        <div class="value">1,284</div>
+                        <div class="value" id="dashTotalUsers">0</div>
                     </div>
                     <div class="card">
                         <h4><i class="fas fa-wallet"></i> Số Dư Ví</h4>
@@ -410,7 +440,7 @@
                     </div>
                     <div class="card">
                         <h4><i class="fas fa-shopping-bag"></i> Đơn SMM</h4>
-                        <div class="value">348</div>
+                        <div class="value" id="dashTotalOrders">0</div>
                     </div>
                     <div class="card">
                         <h4><i class="fas fa-microchip"></i> Bot Sessions</h4>
@@ -442,10 +472,10 @@
                 </div>
             </div>
 
-            <!-- 2. TĂNG MẮT & QUẢN LÝ LIVE STREAM ĐA NỀN TẢNG (MỚI TÍCH HỢP) -->
+            <!-- 2. TĂNG MẮT & QUẢN LÝ LIVE STREAM ĐA NỀN TẢNG -->
             <div id="view-live-boost" class="view-section">
                 <div class="card" style="padding: 15px;">
-                    <h3 style="margin-bottom: 12px;"><i class="fas fa-broadcast-tower"></i> Hệ Thống Tăng Người Xem (Live Viewers) Đa Nền Tảng</h3>
+                    <h3 style="margin-bottom: 12px;"><i class="fas fa-broadcast-tower"></i> Hệ Thống Tăng Người Xem & Tương Tác Live Đa Nền Tảng</h3>
                     
                     <div class="form-row" style="margin-bottom: 12px;">
                         <div>
@@ -474,7 +504,6 @@
                         </div>
                     </div>
 
-                    <!-- Bảng hiển thị các phiên Live đang chạy -->
                     <h4 style="color: #00f3ff; margin-bottom: 8px;"><i class="fas fa-chart-line"></i> Trạng Thái Các Phiên Live Đang Chạy Realtime</h4>
                     <div id="activeLiveSessionsContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px;">
                         <p style="color: #777;">Chưa có phiên livestream nào được kích hoạt...</p>
@@ -507,7 +536,6 @@
                         <input type="text" id="smartLinkInput" placeholder="https://www.dropbox.com/... hoặc Google Drive link" value="https://www.dropbox.com/scl/fi/p8rt1ywmcpjjmgs385jd8/1_4978790402363492774.mp4?rlkey=pgqjnch11ochet1vqnx61ank3&st=wnl3qxsf&dl=0">
                     </div>
                     
-                    <!-- Khung phát video -->
                     <div class="video-box">
                         <div id="loadingOverlay">
                             <div class="spinner"></div>
@@ -647,26 +675,88 @@
 
             <!-- 5. QUẢN LÝ ĐƠN SMM -->
             <div id="view-smm" class="view-section">
-                <div class="card">
-                    <h3><i class="fas fa-shopping-cart"></i> Danh sách đơn hàng SMM</h3>
+                <div class="card" style="padding: 15px;">
+                    <h3><i class="fas fa-shopping-cart"></i> Danh Sách Đơn Hàng SMM (Real-time từ Bot)</h3>
+                    <div style="overflow-x: auto; margin-top: 10px;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Mã Đơn</th>
+                                    <th>Khách Hàng</th>
+                                    <th>Dịch Vụ</th>
+                                    <th>Mục Tiêu (Link)</th>
+                                    <th>Số Lượng</th>
+                                    <th>Tổng Tiền</th>
+                                    <th>Thời Gian</th>
+                                    <th>Trạng Thái</th>
+                                </tr>
+                            </thead>
+                            <tbody id="smmOrdersTableBody">
+                                <tr><td colspan="8" style="text-align: center; color: #777;">Đang đồng bộ dữ liệu đơn hàng...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
-            <!-- 6. API ROUTES MANAGER -->
+            <!-- 6. QUẢN LÝ NGƯỜI DÙNG -->
+            <div id="view-users" class="view-section">
+                <div class="card" style="padding: 15px;">
+                    <h3><i class="fas fa-users"></i> Danh Sách Người Dùng Hệ Thống Telegram Bot</h3>
+                    <div style="overflow-x: auto; margin-top: 10px;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID Telegram</th>
+                                    <th>Họ Tên</th>
+                                    <th>Số Dư Ví</th>
+                                    <th>Tổng Đơn</th>
+                                </tr>
+                            </thead>
+                            <tbody id="systemUsersTableBody">
+                                <tr><td colspan="4" style="text-align: center; color: #777;">Chưa có người dùng nào kết nối...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. TRUNG TÂM MUA CODE & NHÀ CÁI -->
+            <div id="view-codes" class="view-section">
+                <div class="card" style="padding: 15px;">
+                    <h3><i class="fas fa-ticket-alt"></i> Trung Tâm Mua Code & Nhà Cái Đang Hoạt Động</h3>
+                    <div class="grid-cards" style="margin-top: 12px;" id="brandCodesContainer">
+                        <div class="card">
+                            <h4>SC88 / C168 / F8BET</h4>
+                            <div class="value" style="font-size: 14px; color: #00ff66;">Trạng thái: 🟢 Hoạt động ổn định</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. TRUNG TÂM KHÁCH HÀNG -->
+            <div id="view-customer" class="view-section">
+                <div class="card" style="padding: 15px;">
+                    <h3><i class="fas fa-id-card"></i> Trung Tâm Khách Hàng & Thông Tin Giao Dịch</h3>
+                    <p style="color: #8b9bb4; font-size: 13px; margin-top: 5px;">Hệ thống tự động ghi nhận thông tin nạp tiền VietQR và lịch sử mua dịch vụ.</p>
+                    <div id="customerSummaryBox" style="margin-top: 15px;">
+                        <div class="status-card">
+                            <h4>💳 Thông Tin Ngân Hàng Nạp Tiền Tự Động</h4>
+                            <p style="font-size: 12px; color: #fff; margin-top: 5px;">Ngân hàng: <b>MB Bank</b> | STK: <code>0123456789</code> | Chủ TK: <b>HENDY SYSTEM</b></p>
+                            <p style="font-size: 11px; color: #00ff66; margin-top: 3px;">Cú pháp chuyển khoản tự động: <code>NAP [ID_TELEGRAM_CỦA_BẠN]</code></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 9. API ROUTES MANAGER -->
             <div id="view-api" class="view-section">
                 <div class="card">
                     <h3><i class="fas fa-network-wired"></i> Quản lý API Endpoints & Routes</h3>
                 </div>
             </div>
 
-            <!-- 7. QUẢN LÝ NGƯỜI DÙNG -->
-            <div id="view-users" class="view-section">
-                <div class="card">
-                    <h3><i class="fas fa-users"></i> Quản lý người dùng hệ thống</h3>
-                </div>
-            </div>
-
-            <!-- 8. CÀI ĐẶT & BẢO MẬT -->
+            <!-- 10. CÀI ĐẶT & BẢO MẬT -->
             <div id="view-settings" class="view-section">
                 <div class="card">
                     <h3><i class="fas fa-shield-alt"></i> Cấu hình kết nối & Bảo mật nâng cao</h3>
@@ -720,32 +810,63 @@
 
     <!-- JavaScript Gộp Hoàn Chỉnh -->
     <script>
+        // Tự động gán WebSocket Endpoint mặc định là wss://hendy-hades-cloud-production.up.railway.app
+        window.addEventListener('DOMContentLoaded', () => {
+            const wsInput = document.getElementById('wsEndpoint');
+            if (wsInput && !wsInput.value) {
+                wsInput.value = 'wss://hendy-hades-cloud-production.up.railway.app';
+            }
+            initWebSocket();
+        });
+
         // -------------------------------------------------------------
-        // 1. WEBSOCKET ENGINE & TĂNG MẮT LIVE
+        // 1. WEBSOCKET ENGINE & ĐỒNG BỘ TELEGRAM BOT USER (/start)
         // -------------------------------------------------------------
         let ws;
 
         function initWebSocket() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const defaultWsUrl = `${protocol}//${window.location.host}`;
-            const wsUrl = document.getElementById('wsEndpoint')?.value || defaultWsUrl;
+            const wsUrl = document.getElementById('wsEndpoint')?.value || 'wss://hendy-hades-cloud-production.up.railway.app';
             const wsUrlDisplay = document.getElementById('wsUrlDisplay');
             if (wsUrlDisplay) wsUrlDisplay.innerText = `Server: ${wsUrl}`;
 
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
-                console.log('[WS] Đã kết nối thành công!');
+                console.log('[WS] Đã kết nối thành công tới hendy-hades-cloud-production!');
                 updateStatusUI(true);
-                addTerminalLog('SYSTEM', '[WS] Kết nối WebSocket thành công tới WebSocket Hub!', '#00ff66');
+                addTerminalLog('SYSTEM', '[WS] Kết nối WebSocket thành công tới Railway Cloud Hub!', '#00ff66');
             };
 
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    if (data.type === 'INIT_STATE' && data.data) {
-                        if (data.data.botCount !== undefined) updateBotCount(data.data.botCount);
+                    
+                    // Xử lý sự kiện Người dùng bấm /start trên Bot Telegram
+                    if (data.type === 'TELEGRAM_START' || data.type === 'NEW_TELEGRAM_USER' || data.action === 'TELEGRAM_USER_START' || data.action === 'new_telegram_user') {
+                        const user = data.user || data.userInfo || data.data;
+                        if (user) {
+                            addTelegramUserToTable(user, true);
+                            addTerminalLog('TELEGRAM', `Người dùng @${user.username || user.id} vừa nhấn /start Bot!`, '#00ff66');
+                        }
                     }
+
+                    // Khởi tạo danh sách người dùng & đơn hàng khi kết nối
+                    if (data.type === 'INIT_STATE' || data.type === 'INIT_DATA') {
+                        if (data.botCount !== undefined || (data.data && data.data.botCount !== undefined)) {
+                            updateBotCount(data.botCount || data.data.botCount);
+                        }
+                        if (data.users || (data.data && data.data.users)) {
+                            renderUsersTable(data.users || data.data.users);
+                        }
+                        if (data.orders || (data.data && data.data.orders)) {
+                            renderOrdersTable(data.orders || data.data.orders);
+                        }
+                    }
+
+                    if (data.type === 'ORDERS_UPDATED' && data.orders) {
+                        renderOrdersTable(data.orders);
+                    }
+
                     if (data.type === 'PONG') {
                         const latency = Date.now() - data.timestamp;
                         const pingElem = document.getElementById('v6100-pingRes');
@@ -755,7 +876,7 @@
                         updateBotCount(data.count);
                         addTerminalLog('SERVER', `Đã cập nhật số lượng Bot: ${data.count}`, '#00f3ff');
                     }
-                    if (data.type === 'LIVE_VIEWER_UPDATE') {
+                    if (data.type === 'LIVE_METRIC_UPDATE') {
                         updateLiveSessionCard(data);
                     }
                     if (data.type === 'LIVE_BOOST_STATUS') {
@@ -784,6 +905,65 @@
             };
         }
 
+        // Hàm render toàn bộ danh sách người dùng ban đầu
+        function renderUsersTable(usersList) {
+            const tbody = document.getElementById('systemUsersTableBody');
+            if (!tbody) return;
+            if (!usersList || usersList.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">Chưa có người dùng nào trong hệ thống.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = '';
+            usersList.forEach(u => addTelegramUserToTable(u, false));
+        }
+
+        // Hàm thêm/cập nhật 1 người dùng Telegram vào Bảng khi nhấn /start
+        function addTelegramUserToTable(user, highlight = true) {
+            const tbody = document.getElementById('systemUsersTableBody');
+            if (!tbody) return;
+            
+            if (tbody.querySelector('td[colspan="4"]')) {
+                tbody.innerHTML = '';
+            }
+
+            const userId = user.id || user.telegramId || 'N/A';
+            const userRowId = `user_row_${userId}`;
+            let existingRow = document.getElementById(userRowId);
+
+            if (existingRow) {
+                existingRow.cells[1].innerText = user.name || user.first_name || (user.username ? '@' + user.username : 'Khách');
+                existingRow.cells[2].innerText = Number(user.balance || 0).toLocaleString() + ' đ';
+                existingRow.cells[3].innerText = user.totalOrders || 0;
+                if (highlight) {
+                    existingRow.style.backgroundColor = 'rgba(0, 255, 102, 0.2)';
+                    setTimeout(() => { existingRow.style.backgroundColor = ''; }, 3000);
+                }
+                return;
+            }
+
+            const tr = document.createElement('tr');
+            tr.id = userRowId;
+            tr.innerHTML = `
+                <td><b>${userId}</b></td>
+                <td>${user.name || user.first_name || (user.username ? '@' + user.username : 'Khách')}</td>
+                <td style="color: #00ff66;">${Number(user.balance || 0).toLocaleString()} đ</td>
+                <td>${user.totalOrders || 0}</td>
+            `;
+
+            if (highlight) {
+                tr.style.backgroundColor = 'rgba(0, 255, 102, 0.2)';
+                setTimeout(() => { tr.style.backgroundColor = ''; }, 3000);
+            }
+
+            tbody.prepend(tr);
+
+            // Cập nhật số lượng khách hàng lên ô Dashboard
+            const totalUsersElem = document.getElementById('dashTotalUsers');
+            if (totalUsersElem) {
+                totalUsersElem.innerText = tbody.querySelectorAll('tr').length;
+            }
+        }
+
         function updateStatusUI(isConnected) {
             const badge = document.getElementById('v6100-wsBadge');
             if (badge) {
@@ -797,6 +977,31 @@
             const botCard = document.getElementById('botCountCardValue');
             if (botInfo) botInfo.innerText = `Số lượng Bot: ${count} Active`;
             if (botCard) botCard.innerText = `${count} Active`;
+        }
+
+        function renderOrdersTable(orders) {
+            const tbody = document.getElementById('smmOrdersTableBody');
+            if (!tbody) return;
+            if (!orders || orders.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: #777;">Chưa có đơn hàng nào trong hệ thống.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = '';
+            orders.forEach(o => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><b>${o.id}</b></td>
+                    <td>${o.userName || 'Khách'}</td>
+                    <td>${o.serviceName || o.service || 'N/A'}</td>
+                    <td style="word-break: break-all; max-width: 200px;">${o.link}</td>
+                    <td>${Number(o.quantity || 0).toLocaleString()}</td>
+                    <td style="color: #00ff66;">${Number(o.totalCost || 0).toLocaleString()} đ</td>
+                    <td>${o.date || 'N/A'}</td>
+                    <td><span class="badge ${o.status.includes('Hoàn thành') ? 'badge-online' : 'badge-offline'}">${o.status}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('dashTotalOrders').innerText = orders.length;
         }
 
         function addTerminalLog(tag, message, color = '#00ff66') {
@@ -826,9 +1031,7 @@
             }
         });
 
-        window.addEventListener('DOMContentLoaded', initWebSocket);
-
-        // Nút Kích Hoạt Tăng Mắt Live Stream
+        // Nút Kích Hoạt Tăng Mắt & Tương Tác Live Stream
         document.getElementById('startLiveBoostBtn')?.addEventListener('click', async () => {
             const platform = document.getElementById('livePlatform').value;
             const targetInput = document.getElementById('liveTargetInput').value.trim();
@@ -879,15 +1082,45 @@
                 card = document.createElement('div');
                 card.id = cardId;
                 card.className = 'status-card';
+                card.innerHTML = `
+                    <h4>🔴 ${data.platform || 'TikTok'} Live Stream</h4>
+                    <div style="font-size: 11px; color: #8b9bb4; margin-bottom: 5px;" id="target_${data.sessionId}">Mục tiêu: ${data.username ? '@' + data.username : (data.targetUrl || 'Đang kết nối')}</div>
+                    <div style="font-size: 18px; font-weight: bold; color: #00ff66; margin-bottom: 4px;">👁️ Mắt Live: <span id="val_viewers_${data.sessionId}">0</span></div>
+                    <div style="font-size: 13px; color: #ff0055;">❤️ Tim (Likes): <span id="val_likes_${data.sessionId}">0</span></div>
+                    <div style="font-size: 13px; color: #00f3ff;">💬 Bình luận: <span id="val_comments_${data.sessionId}">0</span></div>
+                    <div style="font-size: 13px; color: #ffc107;">➕ Follows: <span id="val_follows_${data.sessionId}">0</span> | 🔄 Shares: <span id="val_shares_${data.sessionId}">0</span></div>
+                    <button class="btn btn-danger" style="margin-top: 8px; padding: 5px 10px; font-size: 11px;" onclick="stopLiveBoost('${data.sessionId}')">Dừng Phiên</button>
+                `;
                 container.appendChild(card);
             }
 
-            card.innerHTML = `
-                <h4>🔴 ${data.platform} Live Stream</h4>
-                <div style="font-size: 11px; color: #8b9bb4; margin-bottom: 5px; word-break: break-all;">Mục tiêu: ${data.username ? '@' + data.username : data.targetUrl}</div>
-                <div style="font-size: 24px; font-weight: bold; color: #00ff66;">👁️ ${data.currentViewers.toLocaleString()} <span style="font-size: 12px; color: #8b9bb4;">/ ${data.targetViewers.toLocaleString()} mắt</span></div>
-                <button class="btn btn-danger" style="margin-top: 8px; padding: 5px 10px; font-size: 11px;" onclick="stopLiveBoost('${data.sessionId}')">Dừng Phiên</button>
-            `;
+            if (data.metric === 'viewers' && document.getElementById(`val_viewers_${data.sessionId}`)) {
+                document.getElementById(`val_viewers_${data.sessionId}`).innerText = (data.currentViewers || 0).toLocaleString();
+            }
+            if (data.metric === 'likes' && document.getElementById(`val_likes_${data.sessionId}`)) {
+                document.getElementById(`val_likes_${data.sessionId}`).innerText = (data.totalLikes || 0).toLocaleString();
+            }
+            if (data.metric === 'comments') {
+                let comElem = document.getElementById(`val_comments_${data.sessionId}`);
+                if (comElem) {
+                    let currentCom = parseInt(comElem.innerText.replace(/,/g, '')) || 0;
+                    comElem.innerText = (currentCom + 1).toLocaleString();
+                }
+            }
+            if (data.metric === 'follows') {
+                let folElem = document.getElementById(`val_follows_${data.sessionId}`);
+                if (folElem) {
+                    let currentFol = parseInt(folElem.innerText.replace(/,/g, '')) || 0;
+                    folElem.innerText = (currentFol + 1).toLocaleString();
+                }
+            }
+            if (data.metric === 'shares') {
+                let shaElem = document.getElementById(`val_shares_${data.sessionId}`);
+                if (shaElem) {
+                    let currentSha = parseInt(shaElem.innerText.replace(/,/g, '')) || 0;
+                    shaElem.innerText = (currentSha + 1).toLocaleString();
+                }
+            }
         }
 
         async function stopLiveBoost(sessionId) {
@@ -937,8 +1170,10 @@
                 'vietsub': 'HỆ THỐNG VIETSUB & AI',
                 'hades': 'HADES V6100 HUB',
                 'smm': 'QUẢN LÝ ĐƠN HÀNG SMM',
-                'api': 'API ROUTES MANAGER',
                 'users': 'QUẢN LÝ NGƯỜI DÙNG',
+                'codes': 'TRUNG TÂM MUA CODE & NHÀ CÁI',
+                'customer': 'TRUNG TÂM KHÁCH HÀNG',
+                'api': 'API ROUTES MANAGER',
                 'settings': 'CÀI ĐẶT & BẢO MẬT'
             };
             document.getElementById('pageTitle').innerHTML = `<i class="fas fa-terminal"></i> ${titles[tabId]}`;
@@ -1002,12 +1237,6 @@
         let aiStartTimestamp = 0;
 
         renderSubList();
-
-        window.addEventListener('DOMContentLoaded', () => {
-            if (smartLinkInput && smartLinkInput.value.trim()) {
-                loadVideoFromInput(smartLinkInput.value.trim());
-            }
-        });
 
         smartLinkInput?.addEventListener('change', () => {
             loadVideoFromInput(smartLinkInput.value.trim());
