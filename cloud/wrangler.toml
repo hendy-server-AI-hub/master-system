@@ -1,3 +1,0 @@
-name = "hendy-smm-worker"
-main = "src/worker.js"
-compatibility_date = "2026-03-01"
