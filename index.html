@@ -808,8 +808,19 @@
         </div>
     </div>
 
-    <!-- JavaScript Gộp Hoàn Chỉnh -->
+    <!-- JavaScript Hoàn Chỉnh Đã Fix Tất Cả Lỗi -->
     <script>
+        // Lọc thoát chuỗi HTML để phòng chống tấn công XSS
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             const wsInput = document.getElementById('wsEndpoint');
             if (wsInput && !wsInput.value) {
@@ -821,14 +832,26 @@
         // -------------------------------------------------------------
         // 1. WEBSOCKET ENGINE & ĐỒNG BỘ TELEGRAM BOT USER (/start)
         // -------------------------------------------------------------
-        let ws;
+        let ws = null;
+        let wsReconnectTimer = null;
 
         function initWebSocket() {
+            if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+                return;
+            }
+
             const wsUrl = document.getElementById('wsEndpoint')?.value || 'wss://hendy-hades-cloud-production.up.railway.app';
             const wsUrlDisplay = document.getElementById('wsUrlDisplay');
             if (wsUrlDisplay) wsUrlDisplay.innerText = `Server: ${wsUrl}`;
 
-            ws = new WebSocket(wsUrl);
+            try {
+                ws = new WebSocket(wsUrl);
+            } catch (err) {
+                console.error("[WS Init Error]", err);
+                updateStatusUI(false);
+                return;
+            }
 
             ws.onopen = () => {
                 console.log('[WS] Đã kết nối thành công tới hendy-hades-cloud-production!');
@@ -852,7 +875,7 @@
                     // Khởi tạo danh sách người dùng & đơn hàng khi kết nối
                     if (data.type === 'INIT_STATE' || data.type === 'INIT_DATA') {
                         if (data.botCount !== undefined || (data.data && data.data.botCount !== undefined)) {
-                            updateBotCount(data.botCount || data.data.botCount);
+                            updateBotCount(data.botCount !== undefined ? data.botCount : data.data.botCount);
                         }
                         if (data.users || (data.data && data.data.users)) {
                             renderUsersTable(data.users || data.data.users);
@@ -892,15 +915,13 @@
             };
 
             ws.onclose = () => {
-                console.warn('[WS] Mất kết nối! Đang thử lại sau 3 giây...');
                 updateStatusUI(false);
                 addTerminalLog('SYSTEM', '[WS] Mất kết nối! Đang thử lại sau 3s...', '#ff0055');
-                setTimeout(initWebSocket, 3000);
+                wsReconnectTimer = setTimeout(initWebSocket, 3000);
             };
 
             ws.onerror = (err) => {
                 console.error('[WS ERROR]', err);
-                ws.close();
             };
         }
 
@@ -941,8 +962,8 @@
             const tr = document.createElement('tr');
             tr.id = userRowId;
             tr.innerHTML = `
-                <td><b>${userId}</b></td>
-                <td>${user.name || user.first_name || (user.username ? '@' + user.username : 'Khách')}</td>
+                <td><b>${escapeHtml(String(userId))}</b></td>
+                <td>${escapeHtml(user.name || user.first_name || (user.username ? '@' + user.username : 'Khách'))}</td>
                 <td style="color: #00ff66;">${Number(user.balance || 0).toLocaleString()} đ</td>
                 <td>${user.totalOrders || 0}</td>
             `;
@@ -956,7 +977,7 @@
 
             const totalUsersElem = document.getElementById('dashTotalUsers');
             if (totalUsersElem) {
-                totalUsersElem.innerText = tbody.querySelectorAll('tr').length;
+                totalUsersElem.innerText = tbody.querySelectorAll('tr:not([colspan])').length;
             }
         }
 
@@ -986,18 +1007,19 @@
             orders.forEach(o => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><b>${o.id}</b></td>
-                    <td>${o.userName || 'Khách'}</td>
-                    <td>${o.serviceName || o.service || 'N/A'}</td>
-                    <td style="word-break: break-all; max-width: 200px;">${o.link}</td>
+                    <td><b>${escapeHtml(String(o.id))}</b></td>
+                    <td>${escapeHtml(o.userName || 'Khách')}</td>
+                    <td>${escapeHtml(o.serviceName || o.service || 'N/A')}</td>
+                    <td style="word-break: break-all; max-width: 200px;">${escapeHtml(o.link)}</td>
                     <td>${Number(o.quantity || 0).toLocaleString()}</td>
                     <td style="color: #00ff66;">${Number(o.totalCost || 0).toLocaleString()} đ</td>
-                    <td>${o.date || 'N/A'}</td>
-                    <td><span class="badge ${o.status.includes('Hoàn thành') ? 'badge-online' : 'badge-offline'}">${o.status}</span></td>
+                    <td>${escapeHtml(o.date || 'N/A')}</td>
+                    <td><span class="badge ${(o.status || '').includes('Hoàn thành') ? 'badge-online' : 'badge-offline'}">${escapeHtml(o.status)}</span></td>
                 `;
                 tbody.appendChild(tr);
             });
-            document.getElementById('dashTotalOrders').innerText = orders.length;
+            const dashOrders = document.getElementById('dashTotalOrders');
+            if (dashOrders) dashOrders.innerText = orders.length;
         }
 
         function addTerminalLog(tag, message, color = '#00ff66') {
@@ -1006,7 +1028,7 @@
             const timeStr = '[' + new Date().toTimeString().split(' ')[0] + ']';
             const logElement = document.createElement('div');
             logElement.className = 'log-item';
-            logElement.innerHTML = `<span class="log-time">${timeStr} [${tag}]</span><span style="color: ${color};">${message}</span>`;
+            logElement.innerHTML = `<span class="log-time">${timeStr} [${escapeHtml(tag)}]</span><span style="color: ${color};">${escapeHtml(message)}</span>`;
             terminalBody.appendChild(logElement);
             terminalBody.scrollTop = terminalBody.scrollHeight;
         }
@@ -1023,11 +1045,11 @@
             if (!ws || ws.readyState === WebSocket.CLOSED) {
                 initWebSocket();
             } else {
-                addTerminalLog('INFO', 'WebSocket đã được khởi tạo.', '#00f3ff');
+                addTerminalLog('INFO', 'WebSocket đang trong quá trình kết nối hoặc đã sẵn sàng.', '#00f3ff');
             }
         });
 
-        // Nút Kích Hoạt Tăng Mắt & Tương Tác Live Stream (Đã sửa lỗi tách TikTok Username & Alert undefined)
+        // Nút Kích Hoạt Tăng Mắt & Tương Tác Live Stream
         document.getElementById('startLiveBoostBtn')?.addEventListener('click', async () => {
             const platform = document.getElementById('livePlatform').value;
             let targetInput = document.getElementById('liveTargetInput').value.trim();
@@ -1089,8 +1111,8 @@
                 card.id = cardId;
                 card.className = 'status-card';
                 card.innerHTML = `
-                    <h4>🔴 ${data.platform || 'TikTok'} Live Stream</h4>
-                    <div style="font-size: 11px; color: #8b9bb4; margin-bottom: 5px;" id="target_${data.sessionId}">Mục tiêu: ${data.username ? '@' + data.username : (data.targetUrl || 'Đang kết nối')}</div>
+                    <h4>🔴 ${escapeHtml(data.platform || 'TikTok')} Live Stream</h4>
+                    <div style="font-size: 11px; color: #8b9bb4; margin-bottom: 5px;" id="target_${data.sessionId}">Mục tiêu: ${data.username ? '@' + escapeHtml(data.username) : escapeHtml(data.targetUrl || 'Đang kết nối')}</div>
                     <div style="font-size: 18px; font-weight: bold; color: #00ff66; margin-bottom: 4px;">👁️ Mắt Live: <span id="val_viewers_${data.sessionId}">0</span></div>
                     <div style="font-size: 13px; color: #ff0055;">❤️ Tim (Likes): <span id="val_likes_${data.sessionId}">0</span></div>
                     <div style="font-size: 13px; color: #00f3ff;">💬 Bình luận: <span id="val_comments_${data.sessionId}">0</span></div>
@@ -1163,7 +1185,8 @@
             document.querySelectorAll('.view-section').forEach(el => {
                 el.classList.remove('active');
             });
-            document.getElementById('view-' + tabId).classList.add('active');
+            const targetView = document.getElementById('view-' + tabId);
+            if (targetView) targetView.classList.add('active');
 
             document.querySelectorAll('.menu-link').forEach(el => {
                 el.classList.remove('active');
@@ -1182,7 +1205,7 @@
                 'api': 'API ROUTES MANAGER',
                 'settings': 'CÀI ĐẶT & BẢO MẬT'
             };
-            document.getElementById('pageTitle').innerHTML = `<i class="fas fa-terminal"></i> ${titles[tabId]}`;
+            document.getElementById('pageTitle').innerHTML = `<i class="fas fa-terminal"></i> ${titles[tabId] || 'HỆ THỐNG'}`;
 
             if (window.innerWidth <= 900) {
                 document.getElementById('sidebar').classList.remove('mobile-show');
@@ -1190,8 +1213,8 @@
         }
 
         setInterval(() => {
-            const now = new Date();
-            document.getElementById('clock').innerText = now.toTimeString().split(' ')[0];
+            const clock = document.getElementById('clock');
+            if (clock) clock.innerText = new Date().toTimeString().split(' ')[0];
         }, 1000);
 
         // -------------------------------------------------------------
@@ -1241,6 +1264,7 @@
         let isAiListening = false;
         let recognition = null;
         let aiStartTimestamp = 0;
+        let trimInterval = null;
 
         renderSubList();
 
@@ -1275,37 +1299,44 @@
         });
 
         previewTrimBtn?.addEventListener('click', () => {
+            if (trimInterval) clearInterval(trimInterval);
             const start = parseFloat(trimStart.value) || 0;
             videoPlayer.currentTime = start;
-            videoPlayer.play();
+            videoPlayer.play().catch(e => console.warn(e));
             const end = parseFloat(trimEnd.value) || videoPlayer.duration;
-            const checkEnd = setInterval(() => {
+            trimInterval = setInterval(() => {
                 if (videoPlayer.currentTime >= end) {
                     videoPlayer.pause();
-                    clearInterval(checkEnd);
+                    clearInterval(trimInterval);
+                    trimInterval = null;
                 }
             }, 200);
         });
 
         snapshotBtn?.addEventListener('click', () => {
             if (!videoPlayer.src) return alert("Chưa có video để chụp ảnh!");
-            const canvas = document.createElement('canvas');
-            canvas.width = videoPlayer.videoWidth || 1280;
-            canvas.height = videoPlayer.videoHeight || 720;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(videoPlayer, 0, 0, canvas.width, canvas.height);
-            
-            const link = document.createElement('a');
-            link.download = 'video_snapshot.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+            try {
+                const canvas = document.createElement('canvas');
+                canvas.width = videoPlayer.videoWidth || 1280;
+                canvas.height = videoPlayer.videoHeight || 720;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(videoPlayer, 0, 0, canvas.width, canvas.height);
+                
+                const link = document.createElement('a');
+                link.download = 'video_snapshot.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            } catch (err) {
+                alert("Không thể chụp ảnh do chính sách CORS bảo mật của Video Link Cloud. Hãy dùng tệp nạp trực tiếp từ máy!");
+                console.error(err);
+            }
         });
 
         exportEditedVideoBtn?.addEventListener('click', () => {
             alert("Trình biên tập đã ghi nhận thông số cắt từ giây " + trimStart.value + " đến " + trimEnd.value + " cùng bộ lọc hình ảnh thành công!");
         });
 
-        // AI SPEECH RECOGNITION
+        // AI SPEECH RECOGNITION TỐI ƯU
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
             recognition = new SpeechRecognition();
@@ -1349,9 +1380,18 @@
                 aiStartTimestamp = currentVideoTime;
             };
 
+            recognition.onerror = (event) => {
+                console.warn("[Speech AI Error]", event.error);
+                if (event.error !== 'no-speech') {
+                    addTerminalLog('AI', `Lỗi AI Speech: ${event.error}`, '#ff0055');
+                }
+            };
+
             recognition.onend = () => {
                 if (isAiListening && !videoPlayer.paused) {
                     try { recognition.start(); } catch (e) {}
+                } else if (!isAiListening) {
+                    stopAiListening();
                 }
             };
         } else if (startAiListeningBtn) {
@@ -1463,14 +1503,14 @@
                 item.className = 'sub-item';
                 item.innerHTML = `
                     <span>[${formatTimeSrt(sub.start)} --> ${formatTimeSrt(sub.end)}]</span>
-                    <div><b>${sub.text}</b></div>
+                    <div><b>${escapeHtml(sub.text)}</b></div>
                     <div class="sub-actions">
                         <button class="btn-warning" style="padding: 3px 6px;" onclick="editSub(${sub.originalIndex})">Sửa</button>
                         <button class="btn-danger" style="padding: 3px 6px;" onclick="deleteSub(${sub.originalIndex})">Xóa</button>
                     </div>
                 `;
                 item.addEventListener('click', (e) => {
-                    if(e.target.tagName !== 'BUTTON') videoPlayer.currentTime = sub.start;
+                    if (e.target.tagName !== 'BUTTON') videoPlayer.currentTime = sub.start;
                 });
                 subListContainer.appendChild(item);
             });
@@ -1544,15 +1584,20 @@
         }
 
         function parseSrtTimeToSeconds(timeStr) {
-            const parts = timeStr.replace(',', '.').split(':');
-            return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+            if (!timeStr) return 0;
+            const parts = timeStr.trim().replace(',', '.').split(':');
+            if (parts.length === 3) {
+                return (parseFloat(parts[0]) * 3600) + (parseFloat(parts[1]) * 60) + parseFloat(parts[2]);
+            }
+            return 0;
         }
 
         exportExcelBtn?.addEventListener('click', () => {
             if (subtitles.length === 0) return alert("Chưa có dữ liệu để xuất!");
             let csvContent = "\uFEFFSTT,Start (s),End (s),Content\n";
             subtitles.forEach((sub, index) => {
-                csvContent += `${index + 1},${sub.start},${sub.end},"${sub.text.replace(/"/g, '""')}"\n`;
+                const cleanText = sub.text.replace(/\r?\n/g, " ").replace(/"/g, '""');
+                csvContent += `${index + 1},${sub.start},${sub.end},"${cleanText}"\n`;
             });
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
@@ -1600,11 +1645,12 @@
         });
 
         function formatTimeSrt(seconds, isForSrtFile = false) {
-            const date = new Date(0);
-            date.setMilliseconds(seconds * 1000);
-            const timeString = date.toISOString().substr(11, 8);
+            if (isNaN(seconds) || seconds < 0) seconds = 0;
+            const hh = Math.floor(seconds / 3600).toString().padStart(2, '0');
+            const mm = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
+            const ss = Math.floor(seconds % 60).toString().padStart(2, '0');
             const ms = Math.floor((seconds % 1) * 1000).toString().padStart(3, '0');
-            return isForSrtFile ? `${timeString},${ms}` : `${timeString}.${ms.substr(0,2)}`;
+            return isForSrtFile ? `${hh}:${mm}:${ss},${ms}` : `${hh}:${mm}:${ss}.${ms.slice(0, 2)}`;
         }
 
         function addLinkInput() {
