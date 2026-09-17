@@ -6,6 +6,8 @@
     <title>Master Control Panel - Hendy & Hades V6100 PRO System</title>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
     <style>
         * {
             margin: 0;
@@ -93,6 +95,9 @@
             padding: 15px;
             border-top: 1px solid #00f3ff33;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .cyber-badge {
@@ -390,6 +395,7 @@
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <h2><i class="fas fa-bolt"></i> HENDY & HADES V6100</h2>
+            <button onclick="toggleSidebar()" class="toggle-btn" style="border:none; background:transparent;"><i class="fa-solid fa-bars"></i></button>
         </div>
         <ul class="sidebar-menu">
             <li><a class="menu-link active" onclick="switchTab('dashboard', this)"><i class="fas fa-home"></i> Dashboard chính</a></li>
@@ -405,6 +411,14 @@
         </ul>
         <div class="sidebar-footer">
             <span class="cyber-badge">PRO SYSTEM</span>
+            <div style="font-size: 11px; text-align: left; color: #8b9bb4;">
+                <label>Role Giả Lập:</label>
+                <select id="roleSelector" onchange="changeRole()" class="form-control" style="margin-top: 3px; padding: 4px;">
+                    <option value="SuperAdmin">SuperAdmin</option>
+                    <option value="Operator">Operator</option>
+                    <option value="Viewer">Viewer</option>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -419,6 +433,12 @@
                 <h1 id="pageTitle"><i class="fas fa-terminal"></i> DASHBOARD CHÍNH</h1>
             </div>
             <div class="system-status">
+                <div style="display: flex; align-items: center; gap: 6px; background: #05070d; padding: 4px 10px; border-radius: 12px; border: 1px solid #00f3ff33;">
+                    <span class="status-dot"></span>
+                    <span style="color: #8b9bb4;">Ping:</span>
+                    <span id="latencyDisplay" style="color: #00ff66; font-weight: bold; font-family: monospace;">0 ms</span>
+                </div>
+                <button onclick="exportReport()" class="btn-cyber" style="padding: 4px 8px; font-size: 11px;"><i class="fa-solid fa-download"></i> Export CSV</button>
                 <div><i class="far fa-clock"></i> <span id="clock">00:00:00</span></div>
                 <div class="status-badge"><span class="status-dot"></span> ONLINE</div>
             </div>
@@ -702,19 +722,27 @@
             <!-- 6. QUẢN LÝ NGƯỜI DÙNG -->
             <div id="view-users" class="view-section">
                 <div class="card" style="padding: 15px;">
-                    <h3><i class="fas fa-users"></i> Danh Sách Người Dùng Hệ Thống Telegram Bot</h3>
-                    <div style="overflow-x: auto; margin-top: 10px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                        <h3><i class="fas fa-users"></i> Quản Lý Người Dùng Hệ Thống</h3>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="userSearchInput" onkeyup="filterUsersTable()" placeholder="🔍 Tìm kiếm tài khoản..." class="form-control" style="width: 200px;">
+                            <button onclick="openCreateUserModal()" class="btn btn-success" style="padding: 6px 12px; font-size: 12px;"><i class="fa-solid fa-plus"></i> Thêm User</button>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;">
                         <table class="data-table">
                             <thead>
                                 <tr>
-                                    <th>ID Telegram</th>
-                                    <th>Họ Tên</th>
+                                    <th>ID / Username</th>
+                                    <th>Tên Hiển Thị</th>
+                                    <th>Quyền (Role)</th>
                                     <th>Số Dư Ví</th>
-                                    <th>Tổng Đơn</th>
+                                    <th>Trạng Thái</th>
+                                    <th style="text-align: right;">Thao Tác</th>
                                 </tr>
                             </thead>
                             <tbody id="systemUsersTableBody">
-                                <tr><td colspan="4" style="text-align: center; color: #777;">Chưa có người dùng nào kết nối...</td></tr>
+                                <tr><td colspan="6" style="text-align: center; color: #777;">Chưa có người dùng nào kết nối...</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -808,7 +836,7 @@
         </div>
     </div>
 
-    <!-- JavaScript Hoàn Chỉnh Đã Fix Tất Cả Lỗi -->
+    <!-- JavaScript Engine -->
     <script>
         // Lọc thoát chuỗi HTML để phòng chống tấn công XSS
         function escapeHtml(str) {
@@ -821,25 +849,136 @@
                 .replace(/'/g, '&#039;');
         }
 
+        let socketIo = null;
+        let currentRole = localStorage.getItem('v6100_role') || 'SuperAdmin';
+
         window.addEventListener('DOMContentLoaded', () => {
             const wsInput = document.getElementById('wsEndpoint');
             if (wsInput && !wsInput.value) {
                 wsInput.value = 'wss://hendy-hades-cloud-production.up.railway.app';
             }
+            document.getElementById('roleSelector').value = currentRole;
+            
             initWebSocket();
+            initSocketIo();
+            loadUsersApi();
         });
 
         // -------------------------------------------------------------
-        // 1. WEBSOCKET ENGINE & ĐỒNG BỘ TELEGRAM BOT USER (/start)
+        // SOCKET.IO & PING LATENCY MONITOR
+        // -------------------------------------------------------------
+        function initSocketIo() {
+            try {
+                socketIo = io();
+                setInterval(() => {
+                    if (socketIo && socketIo.connected) {
+                        socketIo.emit('latency_ping', Date.now());
+                    }
+                }, 2000);
+
+                socketIo.on('latency_pong', (ts) => {
+                    const latency = Date.now() - ts;
+                    const latElem = document.getElementById('latencyDisplay');
+                    if (latElem) latElem.innerText = `${latency} ms`;
+                });
+
+                socketIo.on('user_updated', () => loadUsersApi());
+            } catch (e) {
+                console.warn("[Socket.IO Init Warning]", e);
+            }
+        }
+
+        // -------------------------------------------------------------
+        // ROLE CONTROL & USER MANAGEMENT ENGINE
+        // -------------------------------------------------------------
+        function changeRole() {
+            currentRole = document.getElementById('roleSelector').value;
+            localStorage.setItem('v6100_role', currentRole);
+            addTerminalLog('ROLE', `Đã chuyển Role giả lập sang: ${currentRole}`, '#ffc107');
+            loadUsersApi();
+        }
+
+        async function loadUsersApi() {
+            try {
+                const res = await fetch('/api/v1/users', { headers: { 'x-user-role': currentRole } });
+                const data = await res.json();
+                if (data.success) {
+                    renderUsersTable(data.data);
+                    document.getElementById('dashTotalUsers').innerText = data.data.length;
+                }
+            } catch (err) {
+                console.log("[User API Fallback to Local/WS State]");
+            }
+        }
+
+        function filterUsersTable() {
+            const query = document.getElementById('userSearchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#systemUsersTableBody tr');
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        async function deleteUser(id) {
+            if (!confirm("Bạn có chắc muốn xóa người dùng này?")) return;
+            try {
+                const res = await fetch(`/api/v1/users/${id}`, { method: 'DELETE', headers: { 'x-user-role': currentRole } });
+                const result = await res.json();
+                if (!result.success) alert(result.message);
+                else loadUsersApi();
+            } catch (e) {
+                alert("Lỗi kết nối tới Server API!");
+            }
+        }
+
+        async function openCreateUserModal() {
+            const username = prompt("Nhập Username:");
+            if (!username) return;
+            const role = prompt("Nhập Role (SuperAdmin, Operator, Viewer):", "Operator");
+            
+            try {
+                const res = await fetch('/api/v1/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-user-role': currentRole },
+                    body: JSON.stringify({ username, role })
+                });
+                const result = await res.json();
+                if (!result.success) alert(result.message);
+                else loadUsersApi();
+            } catch (e) {
+                alert("Không thể khởi tạo người dùng!");
+            }
+        }
+
+        function exportReport() {
+            let csvContent = "\uFEFFID/Username,Tên,Role,Số Dư,Trạng Thái\n";
+            const rows = document.querySelectorAll('#systemUsersTableBody tr');
+            rows.forEach(row => {
+                const cols = row.querySelectorAll('td');
+                if (cols.length >= 5) {
+                    csvContent += `"${cols[0].innerText}","${cols[1].innerText}","${cols[2].innerText}","${cols[3].innerText}","${cols[4].innerText}"\n`;
+                }
+            });
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const dl = document.createElement('a');
+            dl.setAttribute("href", url);
+            dl.setAttribute("download", "System_Report.csv");
+            document.body.appendChild(dl);
+            dl.click();
+            dl.remove();
+        }
+
+        // -------------------------------------------------------------
+        // WEBSOCKET ENGINE & ĐỒNG BỘ TELEGRAM BOT USER
         // -------------------------------------------------------------
         let ws = null;
         let wsReconnectTimer = null;
 
         function initWebSocket() {
             if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
-            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-                return;
-            }
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
 
             const wsUrl = document.getElementById('wsEndpoint')?.value || 'wss://hendy-hades-cloud-production.up.railway.app';
             const wsUrlDisplay = document.getElementById('wsUrlDisplay');
@@ -854,7 +993,6 @@
             }
 
             ws.onopen = () => {
-                console.log('[WS] Đã kết nối thành công tới hendy-hades-cloud-production!');
                 updateStatusUI(true);
                 addTerminalLog('SYSTEM', '[WS] Kết nối WebSocket thành công tới Railway Cloud Hub!', '#00ff66');
             };
@@ -862,8 +1000,6 @@
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    
-                    // Xử lý sự kiện Người dùng bấm /start trên Bot Telegram
                     if (data.type === 'TELEGRAM_START' || data.type === 'NEW_TELEGRAM_USER' || data.action === 'TELEGRAM_USER_START' || data.action === 'new_telegram_user') {
                         const user = data.user || data.userInfo || data.data;
                         if (user) {
@@ -872,7 +1008,6 @@
                         }
                     }
 
-                    // Khởi tạo danh sách người dùng & đơn hàng khi kết nối
                     if (data.type === 'INIT_STATE' || data.type === 'INIT_DATA') {
                         if (data.botCount !== undefined || (data.data && data.data.botCount !== undefined)) {
                             updateBotCount(data.botCount !== undefined ? data.botCount : data.data.botCount);
@@ -885,9 +1020,7 @@
                         }
                     }
 
-                    if (data.type === 'ORDERS_UPDATED' && data.orders) {
-                        renderOrdersTable(data.orders);
-                    }
+                    if (data.type === 'ORDERS_UPDATED' && data.orders) renderOrdersTable(data.orders);
 
                     if (data.type === 'PONG') {
                         const latency = Date.now() - data.timestamp;
@@ -898,12 +1031,8 @@
                         updateBotCount(data.count);
                         addTerminalLog('SERVER', `Đã cập nhật số lượng Bot: ${data.count}`, '#00f3ff');
                     }
-                    if (data.type === 'LIVE_METRIC_UPDATE') {
-                        updateLiveSessionCard(data);
-                    }
-                    if (data.type === 'LIVE_BOOST_STATUS') {
-                        addTerminalLog('LIVE', `[${data.platform}] ${data.message}`, data.status === 'ERROR' ? '#ff0055' : '#00ff66');
-                    }
+                    if (data.type === 'LIVE_METRIC_UPDATE') updateLiveSessionCard(data);
+                    if (data.type === 'LIVE_BOOST_STATUS') addTerminalLog('LIVE', `[${data.platform}] ${data.message}`, data.status === 'ERROR' ? '#ff0055' : '#00ff66');
                     if (data.type === 'LIVE_SESSION_STOPPED') {
                         const card = document.getElementById(`live_card_${data.sessionId}`);
                         if (card) card.remove();
@@ -920,16 +1049,14 @@
                 wsReconnectTimer = setTimeout(initWebSocket, 3000);
             };
 
-            ws.onerror = (err) => {
-                console.error('[WS ERROR]', err);
-            };
+            ws.onerror = (err) => console.error('[WS ERROR]', err);
         }
 
         function renderUsersTable(usersList) {
             const tbody = document.getElementById('systemUsersTableBody');
             if (!tbody) return;
             if (!usersList || usersList.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">Chưa có người dùng nào trong hệ thống.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #777;">Chưa có người dùng nào trong hệ thống.</td></tr>`;
                 return;
             }
             tbody.innerHTML = '';
@@ -940,18 +1067,20 @@
             const tbody = document.getElementById('systemUsersTableBody');
             if (!tbody) return;
             
-            if (tbody.querySelector('td[colspan="4"]')) {
-                tbody.innerHTML = '';
-            }
+            if (tbody.querySelector('td[colspan]')) tbody.innerHTML = '';
 
             const userId = user.id || user.telegramId || 'N/A';
             const userRowId = `user_row_${userId}`;
             let existingRow = document.getElementById(userRowId);
 
+            const roleBadge = `<span class="badge badge-online">${user.role || 'Operator'}</span>`;
+            const statusBadge = `<span style="color:${user.status === 'Inactive' ? '#ff0055' : '#00ff66'}">${user.status || 'Active'}</span>`;
+
             if (existingRow) {
                 existingRow.cells[1].innerText = user.name || user.first_name || (user.username ? '@' + user.username : 'Khách');
-                existingRow.cells[2].innerText = Number(user.balance || 0).toLocaleString() + ' đ';
-                existingRow.cells[3].innerText = user.totalOrders || 0;
+                existingRow.cells[2].innerHTML = roleBadge;
+                existingRow.cells[3].innerText = Number(user.balance || 0).toLocaleString() + ' đ';
+                existingRow.cells[4].innerHTML = statusBadge;
                 if (highlight) {
                     existingRow.style.backgroundColor = 'rgba(0, 255, 102, 0.2)';
                     setTimeout(() => { existingRow.style.backgroundColor = ''; }, 3000);
@@ -962,10 +1091,14 @@
             const tr = document.createElement('tr');
             tr.id = userRowId;
             tr.innerHTML = `
-                <td><b>${escapeHtml(String(userId))}</b></td>
-                <td>${escapeHtml(user.name || user.first_name || (user.username ? '@' + user.username : 'Khách'))}</td>
+                <td><b>${escapeHtml(String(user.username || userId))}</b></td>
+                <td>${escapeHtml(user.name || user.first_name || 'Khách')}</td>
+                <td>${roleBadge}</td>
                 <td style="color: #00ff66;">${Number(user.balance || 0).toLocaleString()} đ</td>
-                <td>${user.totalOrders || 0}</td>
+                <td>${statusBadge}</td>
+                <td style="text-align: right;">
+                    <button onclick="deleteUser('${userId}')" class="btn-danger-cyber" style="padding: 2px 6px; font-size: 10px;"><i class="fa-solid fa-trash"></i></button>
+                </td>
             `;
 
             if (highlight) {
@@ -976,9 +1109,7 @@
             tbody.prepend(tr);
 
             const totalUsersElem = document.getElementById('dashTotalUsers');
-            if (totalUsersElem) {
-                totalUsersElem.innerText = tbody.querySelectorAll('tr:not([colspan])').length;
-            }
+            if (totalUsersElem) totalUsersElem.innerText = tbody.querySelectorAll('tr:not([colspan])').length;
         }
 
         function updateStatusUI(isConnected) {
@@ -1042,14 +1173,11 @@
         });
 
         document.getElementById('v6100-btnConnectWs')?.addEventListener('click', () => {
-            if (!ws || ws.readyState === WebSocket.CLOSED) {
-                initWebSocket();
-            } else {
-                addTerminalLog('INFO', 'WebSocket đang trong quá trình kết nối hoặc đã sẵn sàng.', '#00f3ff');
-            }
+            if (!ws || ws.readyState === WebSocket.CLOSED) initWebSocket();
+            else addTerminalLog('INFO', 'WebSocket đang trong quá trình kết nối hoặc đã sẵn sàng.', '#00f3ff');
         });
 
-        // Nút Kích Hoạt Tăng Mắt & Tương Tác Live Stream
+        // Tăng Mắt & Tương Tác Live Stream
         document.getElementById('startLiveBoostBtn')?.addEventListener('click', async () => {
             const platform = document.getElementById('livePlatform').value;
             let targetInput = document.getElementById('liveTargetInput').value.trim();
@@ -1063,19 +1191,14 @@
             if (platform === 'TikTok') {
                 if (targetInput.includes('tiktok.com/')) {
                     const match = targetInput.match(/@([a-zA-Z0-9_.-]+)/);
-                    if (match && match[1]) {
-                        targetInput = match[1];
-                    }
+                    if (match && match[1]) targetInput = match[1];
                 }
                 targetInput = targetInput.replace('@', '').split('?')[0].trim();
             }
 
             let payload = { platform, targetViewers };
-            if (platform === 'TikTok') {
-                payload.username = targetInput;
-            } else {
-                payload.targetUrl = targetInput;
-            }
+            if (platform === 'TikTok') payload.username = targetInput;
+            else payload.targetUrl = targetInput;
 
             try {
                 const response = await fetch('/api/live/start-boost', {
@@ -1086,11 +1209,8 @@
                 const result = await response.json();
                 if (result.success) {
                     addTerminalLog('LIVE', `Khởi chạy tiến trình tăng mắt ${platform} cho @${targetInput} (Session ID: ${result.sessionId})`, '#00ff66');
-                } else {
-                    alert('Lỗi: ' + (result.error || result.message || 'Phòng Live không tồn tại hoặc đã kết thúc!'));
-                }
+                } else alert('Lỗi: ' + (result.error || result.message || 'Phòng Live không tồn tại hoặc đã kết thúc!'));
             } catch (err) {
-                console.error(err);
                 alert('Không thể kết nối tới Server API.');
             }
         });
@@ -1098,10 +1218,7 @@
         function updateLiveSessionCard(data) {
             let container = document.getElementById('activeLiveSessionsContainer');
             if (!container) return;
-            
-            if (container.querySelector('p')) {
-                container.innerHTML = '';
-            }
+            if (container.querySelector('p')) container.innerHTML = '';
 
             let cardId = `live_card_${data.sessionId}`;
             let card = document.getElementById(cardId);
@@ -1170,7 +1287,7 @@
         }
 
         // -------------------------------------------------------------
-        // 2. LOGIC GIAO DIỆN HỆ THỐNG
+        // LOGIC GIAO DIỆN HỆ THỐNG
         // -------------------------------------------------------------
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
@@ -1182,16 +1299,12 @@
         }
 
         function switchTab(tabId, element) {
-            document.querySelectorAll('.view-section').forEach(el => {
-                el.classList.remove('active');
-            });
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
             const targetView = document.getElementById('view-' + tabId);
             if (targetView) targetView.classList.add('active');
 
-            document.querySelectorAll('.menu-link').forEach(el => {
-                el.classList.remove('active');
-            });
-            element.classList.add('active');
+            document.querySelectorAll('.menu-link').forEach(el => el.classList.remove('active'));
+            if(element) element.classList.add('active');
 
             const titles = {
                 'dashboard': 'DASHBOARD CHÍNH',
@@ -1218,7 +1331,7 @@
         }, 1000);
 
         // -------------------------------------------------------------
-        // 3. LOGIC TRÌNH EDIT VIDEO, VIETSUB & AI
+        // LOGIC TRÌNH EDIT VIDEO, VIETSUB & AI
         // -------------------------------------------------------------
         const smartLinkInput = document.getElementById('smartLinkInput');
         const videoUpload = document.getElementById('videoUpload');
@@ -1268,9 +1381,7 @@
 
         renderSubList();
 
-        smartLinkInput?.addEventListener('change', () => {
-            loadVideoFromInput(smartLinkInput.value.trim());
-        });
+        smartLinkInput?.addEventListener('change', () => loadVideoFromInput(smartLinkInput.value.trim()));
 
         function loadVideoFromInput(url) {
             if (!url) return;
@@ -1280,19 +1391,14 @@
                 if (!finalUrl.includes('raw=1')) finalUrl += (finalUrl.includes('?') ? '&' : '?') + 'raw=1';
             } else if (url.includes('drive.google.com')) {
                 const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                if (match && match[1]) {
-                    finalUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
-                }
+                if (match && match[1]) finalUrl = `https://drive.google.com/uc?export=download&id=${match[1]}`;
             }
             showLoading("Đang tải video cloud...");
             videoPlayer.src = finalUrl;
             videoPlayer.load();
         }
 
-        videoFilterSelect?.addEventListener('change', (e) => {
-            videoPlayer.style.filter = e.target.value;
-        });
-
+        videoFilterSelect?.addEventListener('change', (e) => videoPlayer.style.filter = e.target.value);
         videoAspectSelect?.addEventListener('change', (e) => {
             videoPlayer.style.width = e.target.value;
             videoPlayer.style.margin = '0 auto';
@@ -1328,7 +1434,6 @@
                 link.click();
             } catch (err) {
                 alert("Không thể chụp ảnh do chính sách CORS bảo mật của Video Link Cloud. Hãy dùng tệp nạp trực tiếp từ máy!");
-                console.error(err);
             }
         });
 
@@ -1355,14 +1460,8 @@
                     startAiListeningBtn.innerText = "🛑 Đang Nghe... Bấm để Dừng";
                     startAiListeningBtn.classList.add('active');
                     aiStartTimestamp = videoPlayer.currentTime;
-                    try {
-                        recognition.start();
-                    } catch (e) {
-                        console.error(e);
-                    }
-                } else {
-                    stopAiListening();
-                }
+                    try { recognition.start(); } catch (e) {}
+                } else stopAiListening();
             });
 
             recognition.onresult = (event) => {
@@ -1381,18 +1480,13 @@
             };
 
             recognition.onerror = (event) => {
-                console.warn("[Speech AI Error]", event.error);
-                if (event.error !== 'no-speech') {
-                    addTerminalLog('AI', `Lỗi AI Speech: ${event.error}`, '#ff0055');
-                }
+                if (event.error !== 'no-speech') addTerminalLog('AI', `Lỗi AI Speech: ${event.error}`, '#ff0055');
             };
 
             recognition.onend = () => {
                 if (isAiListening && !videoPlayer.paused) {
                     try { recognition.start(); } catch (e) {}
-                } else if (!isAiListening) {
-                    stopAiListening();
-                }
+                } else if (!isAiListening) stopAiListening();
             };
         } else if (startAiListeningBtn) {
             startAiListeningBtn.disabled = true;
@@ -1444,11 +1538,8 @@
 
         captureTimeBtn?.addEventListener('click', () => {
             const currentTime = videoPlayer.currentTime;
-            if (!startTimeInput.value) {
-                startTimeInput.value = currentTime.toFixed(2);
-            } else {
-                endTimeInput.value = currentTime.toFixed(2);
-            }
+            if (!startTimeInput.value) startTimeInput.value = currentTime.toFixed(2);
+            else endTimeInput.value = currentTime.toFixed(2);
         });
 
         saveSubBtn?.addEventListener('click', () => {
@@ -1462,9 +1553,8 @@
                 return;
             }
 
-            if (editIdx === -1) {
-                subtitles.push({ start, end, text });
-            } else {
+            if (editIdx === -1) subtitles.push({ start, end, text });
+            else {
                 subtitles[editIdx] = { start, end, text };
                 resetForm();
             }
@@ -1484,9 +1574,7 @@
         }
         cancelEditBtn?.addEventListener('click', resetForm);
 
-        quickSearchInput?.addEventListener('input', (e) => {
-            renderSubList(e.target.value.toLowerCase());
-        });
+        quickSearchInput?.addEventListener('input', (e) => renderSubList(e.target.value.toLowerCase()));
 
         function renderSubList(filter = '') {
             if (!subListContainer) return;
@@ -1541,10 +1629,7 @@
             renderSubList(quickSearchInput ? quickSearchInput.value.toLowerCase() : '');
 
             if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: 'SYNC_SUBTITLES',
-                    data: subtitles
-                }));
+                ws.send(JSON.stringify({ type: 'SYNC_SUBTITLES', data: subtitles }));
             }
         }
 
@@ -1554,18 +1639,14 @@
             if (currentSub) {
                 subtitleOverlay.style.display = 'block';
                 subtitleOverlay.innerText = currentSub.text;
-            } else {
-                subtitleOverlay.style.display = 'none';
-            }
+            } else subtitleOverlay.style.display = 'none';
         });
 
         srtUpload?.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = function(event) {
-                parseSrt(event.target.result);
-            };
+            reader.onload = function(event) { parseSrt(event.target.result); };
             reader.readAsText(file, "UTF-8");
         });
 
@@ -1666,9 +1747,7 @@
             container.appendChild(div);
         }
 
-        function removeLinkInput(button) {
-            button.parentElement.remove();
-        }
+        function removeLinkInput(button) { button.parentElement.remove(); }
 
         function saveSettings() {
             addTerminalLog('SETTINGS', 'Đã lưu thiết lập hệ thống thành công.', '#00ff66');
