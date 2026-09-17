@@ -792,7 +792,7 @@
                     <div class="form-row" style="margin-top: 10px;">
                         <div class="form-group">
                             <label><i class="fas fa-server"></i> Endpoints WebSocket chính</label>
-                            <input type="text" class="form-control" id="wsEndpoint" value="wss://master-system-production-dec9.up.railway.app">
+                            <input type="text" class="form-control" id="wsEndpoint" value="wss://master-system-production-dec9.up.railway.app/ws">
                         </div>
                         <div class="form-group">
                             <label><i class="fas fa-key"></i> Khóa Mã Hóa Token Session</label>
@@ -852,10 +852,11 @@
         let socketIo = null;
         let currentRole = localStorage.getItem('v6100_role') || 'SuperAdmin';
 
+        // Tự động kích hoạt kết nối ngay khi tải xong DOM
         window.addEventListener('DOMContentLoaded', () => {
             const wsInput = document.getElementById('wsEndpoint');
             if (wsInput && !wsInput.value) {
-                wsInput.value = 'wss://master-system-production-dec9.up.railway.app';
+                wsInput.value = 'wss://master-system-production-dec9.up.railway.app/ws';
             }
             document.getElementById('roleSelector').value = currentRole;
             
@@ -868,7 +869,7 @@
         // SOCKET.IO & PING LATENCY MONITOR
         // -------------------------------------------------------------
         const SOCKET_IO_URL = "https://master-system-production-dec9.up.railway.app";
-        const WS_ENDPOINT = "wss://master-system-production-dec9.up.railway.app";
+        const WS_ENDPOINT = "wss://master-system-production-dec9.up.railway.app/ws";
 
         function initSocketIo() {
             try {
@@ -974,7 +975,7 @@
         }
 
         // -------------------------------------------------------------
-        // WEBSOCKET ENGINE & ĐỒNG BỘ TELEGRAM BOT USER
+        // WEBSOCKET ENGINE & TỰ ĐỘNG KẾT NỐI LẠI
         // -------------------------------------------------------------
         let ws = null;
         let wsReconnectTimer = null;
@@ -1052,7 +1053,10 @@
                 wsReconnectTimer = setTimeout(initWebSocket, 3000);
             };
 
-            ws.onerror = (err) => console.error('[WS ERROR]', err);
+            ws.onerror = (err) => {
+                console.error('[WS ERROR]', err);
+                ws.close();
+            };
         }
 
         function renderUsersTable(usersList) {
