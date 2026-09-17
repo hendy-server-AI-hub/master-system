@@ -792,7 +792,7 @@
                     <div class="form-row" style="margin-top: 10px;">
                         <div class="form-group">
                             <label><i class="fas fa-server"></i> Endpoints WebSocket chính</label>
-                            <input type="text" class="form-control" id="wsEndpoint" value="wss://hendy-hades-cloud-production.up.railway.app">
+                            <input type="text" class="form-control" id="wsEndpoint" value="wss://master-system-production-dec9.up.railway.app">
                         </div>
                         <div class="form-group">
                             <label><i class="fas fa-key"></i> Khóa Mã Hóa Token Session</label>
@@ -855,7 +855,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             const wsInput = document.getElementById('wsEndpoint');
             if (wsInput && !wsInput.value) {
-                wsInput.value = 'wss://hendy-hades-cloud-production.up.railway.app';
+                wsInput.value = 'wss://master-system-production-dec9.up.railway.app';
             }
             document.getElementById('roleSelector').value = currentRole;
             
@@ -867,9 +867,12 @@
         // -------------------------------------------------------------
         // SOCKET.IO & PING LATENCY MONITOR
         // -------------------------------------------------------------
+        const SOCKET_IO_URL = "https://master-system-production-dec9.up.railway.app";
+        const WS_ENDPOINT = "wss://master-system-production-dec9.up.railway.app";
+
         function initSocketIo() {
             try {
-                socketIo = io();
+                socketIo = io(SOCKET_IO_URL);
                 setInterval(() => {
                     if (socketIo && socketIo.connected) {
                         socketIo.emit('latency_ping', Date.now());
@@ -900,7 +903,7 @@
 
         async function loadUsersApi() {
             try {
-                const res = await fetch('/api/v1/users', { headers: { 'x-user-role': currentRole } });
+                const res = await fetch(`${SOCKET_IO_URL}/api/v1/users`, { headers: { 'x-user-role': currentRole } });
                 const data = await res.json();
                 if (data.success) {
                     renderUsersTable(data.data);
@@ -923,7 +926,7 @@
         async function deleteUser(id) {
             if (!confirm("Bạn có chắc muốn xóa người dùng này?")) return;
             try {
-                const res = await fetch(`/api/v1/users/${id}`, { method: 'DELETE', headers: { 'x-user-role': currentRole } });
+                const res = await fetch(`${SOCKET_IO_URL}/api/v1/users/${id}`, { method: 'DELETE', headers: { 'x-user-role': currentRole } });
                 const result = await res.json();
                 if (!result.success) alert(result.message);
                 else loadUsersApi();
@@ -938,7 +941,7 @@
             const role = prompt("Nhập Role (SuperAdmin, Operator, Viewer):", "Operator");
             
             try {
-                const res = await fetch('/api/v1/users', {
+                const res = await fetch(`${SOCKET_IO_URL}/api/v1/users`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'x-user-role': currentRole },
                     body: JSON.stringify({ username, role })
@@ -980,7 +983,7 @@
             if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
             if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
 
-            const wsUrl = document.getElementById('wsEndpoint')?.value || 'wss://hendy-hades-cloud-production.up.railway.app';
+            const wsUrl = document.getElementById('wsEndpoint')?.value || WS_ENDPOINT;
             const wsUrlDisplay = document.getElementById('wsUrlDisplay');
             if (wsUrlDisplay) wsUrlDisplay.innerText = `Server: ${wsUrl}`;
 
@@ -1201,7 +1204,7 @@
             else payload.targetUrl = targetInput;
 
             try {
-                const response = await fetch('/api/live/start-boost', {
+                const response = await fetch(`${SOCKET_IO_URL}/api/live/start-boost`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -1270,7 +1273,7 @@
 
         async function stopLiveBoost(sessionId) {
             try {
-                const response = await fetch('/api/live/stop-boost', {
+                const response = await fetch(`${SOCKET_IO_URL}/api/live/stop-boost`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ sessionId })
