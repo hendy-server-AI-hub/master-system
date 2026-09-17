@@ -1,10 +1,14 @@
+require('dotenv').config();
 const express = require('express');
 const http = require('http');
 const path = require('path');
 const WebSocket = require('ws');
 const { Server } = require('socket.io');
 const { WebcastPushConnection } = require('tiktok-live-connector');
-require('dotenv').config();
+
+// --- Tích hợp các Module mới ---
+require('./telegram'); // Khởi chạy Telegram Bot ngầm
+const { runBrowserTask } = require('./scraper');
 
 const app = express();
 const server = http.createServer(app);
@@ -165,12 +169,16 @@ app.get('/send-command', (req, res) => {
     res.send(`🚀 Đã phát lệnh thành công cho ${count} thiết bị: [ ${cmd} ]`);
 });
 
+// Endpoint kích hoạt Puppeteer thủ công
+app.post('/api/run-scraper', async (req, res) => {
+    const result = await runBrowserTask();
+    res.json(result);
+});
+
 // ==========================================
 // 🤖 AI MANAGER ENGINE
 // ==========================================
 async function processAiManagerCommand(userPrompt, systemContext) {
-    const prompt = userPrompt.toLowerCase().trim();
-    
     if (GEMINI_API_KEY) {
         try {
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
@@ -210,30 +218,15 @@ Hãy phân tích lệnh và trả về DUY NHẤT một chuỗi JSON theo địn
     }
 
     let action = 'UNKNOWN';
-    let reply = '🤖 AI Quản lý chưa hiểu rõ yêu cầu. Bạn có thể thử: "Chạy tất cả bot", "Dừng bot", "Thêm 3 bot", "Tăng mắt live", "Xuất báo cáo", hoặc "Báo cáo trạng thái".';
+    let reply = '🤖 AI Quản lý chưa hiểu rõ yêu cầu.';
     let params = {};
 
-    if (prompt.includes('chạy') || prompt.includes('bắt đầu') || prompt.includes('start')) {
+    if (userPrompt.toLowerCase().includes('chạy') || userPrompt.toLowerCase().includes('start')) {
         action = 'START_ALL_BOTS';
-        reply = '🚀 AI Manager đã phát lệnh kích hoạt TẤT CẢ các Bot trong hệ thống!';
-    } else if (prompt.includes('dừng') || prompt.includes('stop') || prompt.includes('tắt')) {
+        reply = '🚀 AI Manager đã phát lệnh kích hoạt TẤT CẢ các Bot!';
+    } else if (userPrompt.toLowerCase().includes('dừng') || userPrompt.toLowerCase().includes('stop')) {
         action = 'STOP_ALL_BOTS';
-        reply = '⏹ AI Manager đã tạm dừng hoạt động của tất cả các Bot!';
-    } else if (prompt.includes('thêm bot') || prompt.includes('tạo bot') || prompt.includes('add bot')) {
-        action = 'ADD_BOT';
-        const match = prompt.match(/\d+/);
-        const count = match ? parseInt(match[0]) : 1;
-        params = { count };
-        reply = `➕ AI Manager đã thêm thành công ${count} tài khoản Bot mới vào Hub!`;
-    } else if (prompt.includes('xuất') || prompt.includes('báo cáo') || prompt.includes('csv') || prompt.includes('download')) {
-        action = 'EXPORT_CSV';
-        reply = '📥 AI Manager đã tạo và tải về tệp báo cáo danh sách Bot!';
-    } else if (prompt.includes('xóa log') || prompt.includes('dọn log') || prompt.includes('clear')) {
-        action = 'CLEAR_LOGS';
-        reply = '🗑️ AI Manager đã dọn dẹp sạch sẽ toàn bộ nhật ký hệ thống.';
-    } else if (prompt.includes('trạng thái') || prompt.includes('kiểm tra') || prompt.includes('status') || prompt.includes('sức khỏe')) {
-        action = 'SYSTEM_STATUS';
-        reply = `📊 BÁO CÁO SỨC KHỎE HỆ THỐNG:\n- Số Slave đang kết nối: ${systemContext.slaveCount || 0}\n- Số Bot đang lưu trữ: ${systemContext.botCount || 0}\n- Số Phiên Live đang chạy: ${systemContext.liveCount || 0}\n- WebSocket Hub: ONLINE 🟢`;
+        reply = '⏹ AI Manager đã tạm dừng tất cả các Bot!';
     }
 
     return { action, reply, params };
@@ -242,9 +235,7 @@ Hãy phân tích lệnh và trả về DUY NHẤT một chuỗi JSON theo địn
 app.post('/api/ai/manage', async (req, res) => {
     try {
         const { prompt, context } = req.body;
-        if (!prompt) {
-            return res.status(400).json({ error: 'Vui lòng cung cấp câu lệnh' });
-        }
+        if (!prompt) return res.status(400).json({ error: 'Vui lòng cung cấp câu lệnh' });
 
         const systemContext = {
             slaveCount: activeSlaves.size,
@@ -254,14 +245,7 @@ app.post('/api/ai/manage', async (req, res) => {
         };
 
         const result = await processAiManagerCommand(prompt, systemContext);
-
-        broadcastToAll({
-            type: 'AI_MANAGER_ACTION',
-            action: result.action,
-            params: result.params,
-            sender: 'AI_SERVER'
-        });
-
+        broadcastToAll({ type: 'AI_MANAGER_ACTION', action: result.action, params: result.params });
         res.json({ success: true, data: result });
     } catch (error) {
         console.error('[AI API ERROR]:', error);
@@ -275,9 +259,8 @@ app.post('/api/ai/manage', async (req, res) => {
 app.post('/api/live/start-boost', (req, res) => {
     try {
         const { platform, targetUrl, username, targetViewers } = req.body;
-        
         if (!platform || (!targetUrl && !username)) {
-            return res.status(400).json({ success: false, error: 'Thiếu thông tin nền tảng hoặc Username/URL phòng live' });
+            return res.status(400).json({ success: false, error: 'Thiếu thông tin nền tảng hoặc Username phòng live' });
         }
 
         const sessionId = 'LIVE_' + Math.random().toString(36).substring(2, 8);
@@ -285,289 +268,53 @@ app.post('/api/live/start-boost', (req, res) => {
 
         if (platform.toLowerCase() === 'tiktok' && username) {
             const cleanUsername = username.replace('@', '').trim();
-            try {
-                const tiktokConnection = new WebcastPushConnection(cleanUsername);
+            const tiktokConnection = new WebcastPushConnection(cleanUsername);
 
-                tiktokConnection.connect().then(state => {
-                    console.log(`[TIKTOK LIVE CONNECTED] Room ID: ${state.roomId} | User: @${cleanUsername}`);
-                    broadcastToAll({
-                        type: 'LIVE_BOOST_STATUS',
-                        sessionId,
-                        platform: 'TikTok',
-                        username: cleanUsername,
-                        status: 'CONNECTED',
-                        message: `Đã kết nối thành công phòng Live ID: ${state.roomId}`
-                    });
-                }).catch(err => {
-                    console.error(`[TIKTOK LIVE CONNECT ERROR]:`, err.message);
-                    broadcastToAll({
-                        type: 'LIVE_BOOST_STATUS',
-                        sessionId,
-                        platform: 'TikTok',
-                        username: cleanUsername,
-                        status: 'ERROR',
-                        message: err.message
-                    });
-                });
-
-                tiktokConnection.on('roomUser', data => {
-                    broadcastToAll({
-                        type: 'LIVE_METRIC_UPDATE',
-                        sessionId,
-                        metric: 'viewers',
-                        currentViewers: data.viewerCount,
-                        targetViewers: targetViewersCount
-                    });
-                });
-
-                tiktokConnection.on('like', data => {
-                    broadcastToAll({
-                        type: 'LIVE_METRIC_UPDATE',
-                        sessionId,
-                        metric: 'likes',
-                        totalLikes: data.totalLikeCount,
-                        likeCount: data.likeCount,
-                        sender: data.nickname
-                    });
-                });
-
-                tiktokConnection.on('chat', data => {
-                    broadcastToAll({
-                        type: 'LIVE_METRIC_UPDATE',
-                        sessionId,
-                        metric: 'comments',
-                        commentUser: data.nickname,
-                        commentText: data.comment
-                    });
-                });
-
-                tiktokConnection.on('social', data => {
-                    let metricType = 'social';
-                    if (data.displayType && data.displayType.includes('share')) {
-                        metricType = 'shares';
-                    } else if (data.displayType && data.displayType.includes('follow')) {
-                        metricType = 'follows';
-                    }
-                    broadcastToAll({
-                        type: 'LIVE_METRIC_UPDATE',
-                        sessionId,
-                        metric: metricType,
-                        user: data.nickname,
-                        actionType: data.displayType
-                    });
-                });
-
-                tiktokConnection.on('streamEnd', () => {
-                    broadcastToAll({
-                        type: 'LIVE_BOOST_STATUS',
-                        sessionId,
-                        platform: 'TikTok',
-                        username: cleanUsername,
-                        status: 'DISCONNECTED',
-                        message: 'Phiên live đã kết thúc.'
-                    });
-                });
-
-                activeLiveMonitors.set(sessionId, {
-                    sessionId,
-                    connection: tiktokConnection,
-                    platform: 'TikTok',
-                    username: cleanUsername,
-                    targetViewers: targetViewersCount,
-                    startTime: new Date().toLocaleTimeString('vi-VN')
-                });
-
-            } catch (err) {
-                console.error('[TIKTOK INIT ERROR]:', err);
-            }
-        } else {
-            let currentViewers = Math.floor(Math.random() * 20) + 10;
-            
-            const interval = setInterval(() => {
-                if (!activeLiveMonitors.has(sessionId)) {
-                    clearInterval(interval);
-                    return;
-                }
-
-                if (currentViewers < targetViewersCount) {
-                    currentViewers += Math.floor(Math.random() * 15) + 5;
-                    if (currentViewers > targetViewersCount) currentViewers = targetViewersCount;
-                } else {
-                    currentViewers += Math.floor(Math.random() * 5) - 2;
-                }
-
-                broadcastToAll({
-                    type: 'LIVE_METRIC_UPDATE',
-                    sessionId,
-                    metric: 'viewers',
-                    currentViewers,
-                    targetViewers: targetViewersCount,
-                    platform,
-                    targetUrl: targetUrl || username
-                });
-            }, 2500);
-
-            activeLiveMonitors.set(sessionId, {
-                sessionId,
-                interval,
-                platform,
-                targetUrl: targetUrl || username,
-                targetViewers: targetViewersCount,
-                startTime: new Date().toLocaleTimeString('vi-VN')
+            tiktokConnection.connect().then(state => {
+                console.log(`[TIKTOK LIVE] Connected Room ID: ${state.roomId}`);
+            }).catch(err => {
+                console.error(`[TIKTOK ERROR]:`, err.message);
             });
+
+            tiktokConnection.on('roomUser', data => {
+                broadcastToAll({ type: 'LIVE_METRIC_UPDATE', sessionId, currentViewers: data.viewerCount });
+            });
+
+            activeLiveMonitors.set(sessionId, { sessionId, connection: tiktokConnection, platform: 'TikTok' });
         }
 
-        res.json({
-            success: true,
-            sessionId,
-            message: `🚀 Đã khởi chạy hệ thống tăng tương tác Live cho ${platform} thành công!`
-        });
+        res.json({ success: true, sessionId, message: `🚀 Đã khởi chạy Live Boost thành công!` });
     } catch (e) {
-        console.error('[LIVE START ERROR]:', e);
         res.status(500).json({ success: false, error: 'Lỗi server khi khởi chạy Live Boost' });
     }
 });
 
-app.post('/api/live/stop-boost', (req, res) => {
-    try {
-        const { sessionId } = req.body;
-        if (!sessionId || !activeLiveMonitors.has(sessionId)) {
-            return res.status(404).json({ success: false, error: 'Không tìm thấy phiên Live đang chạy' });
-        }
-
-        const monitor = activeLiveMonitors.get(sessionId);
-        if (monitor.connection && typeof monitor.connection.disconnect === 'function') {
-            monitor.connection.disconnect();
-        }
-        if (monitor.interval) {
-            clearInterval(monitor.interval);
-        }
-
-        activeLiveMonitors.delete(sessionId);
-
-        broadcastToAll({
-            type: 'LIVE_SESSION_STOPPED',
-            sessionId,
-            message: `Đã dừng phiên boost ${sessionId}`
-        });
-
-        res.json({ success: true, message: `Đã dừng thành công phiên ${sessionId}` });
-    } catch (e) {
-        console.error('[LIVE STOP ERROR]:', e);
-        res.status(500).json({ success: false, error: 'Lỗi dừng phiên Live' });
-    }
-});
-
-app.get('/api/live/sessions', (req, res) => {
-    const list = Array.from(activeLiveMonitors.values()).map(m => ({
-        sessionId: m.sessionId,
-        platform: m.platform,
-        username: m.username || '',
-        targetUrl: m.targetUrl || '',
-        targetViewers: m.targetViewers,
-        startTime: m.startTime
-    }));
-    res.json({ success: true, sessions: list });
-});
-
 // ==========================================
-// 🔌 REALTIME ENGINE 1: NATIVE WEBSOCKET (SLAVE & BOT HUB)
+// 🔌 REALTIME ENGINE: NATIVE WEBSOCKET & SOCKET.IO
 // ==========================================
 wss.on('connection', (ws) => {
     ws.isAlive = true;
-    let currentSlaveId = null;
-
     console.log('[WS] Slave/Device client đã kết nối.');
-
-    ws.send(JSON.stringify({ 
-        type: 'INIT_STATE', 
-        data: {
-            botCount: activeBots.size,
-            slaveCount: activeSlaves.size,
-            liveCount: activeLiveMonitors.size
-        },
-        message: 'Kết nối thành công tới WebSocket Hub!' 
-    }));
 
     ws.on('pong', () => { ws.isAlive = true; });
 
     ws.on('message', (message) => {
         try {
             const data = JSON.parse(message);
-            const now = Date.now();
-
             if (data.type === 'PING') {
                 ws.send(JSON.stringify({ type: 'PONG', timestamp: data.timestamp }));
                 return;
             }
-
-            if (data.action === 'SYNC_REGISTER_TAB') {
-                currentSlaveId = data.value?.id || ('slave_' + Math.random().toString(36).substring(2, 8));
-                ws.slaveId = currentSlaveId;
-                activeSlaves.set(currentSlaveId, {
-                    ws: ws, id: currentSlaveId,
-                    name: data.value?.name || 'Khách',
-                    role: data.value?.role || 'VIP_BOT',
-                    isOnLive: 1, url: '', lastSeen: now
-                });
-            } else if (data.action === 'SYNC_STATUS') {
-                currentSlaveId = data.slaveId;
-                if (activeSlaves.has(currentSlaveId)) {
-                    let slave = activeSlaves.get(currentSlaveId);
-                    slave.name = data.nickname || slave.name;
-                    slave.isOnLive = data.is_on_live;
-                    slave.url = data.url;
-                    slave.lastSeen = now;
-                }
-            } else if (data.action === 'CREATE_BOT') {
-                activeBots.set(data.botId, {
-                    botId: data.botId,
-                    account: data.account,
-                    status: data.status || 'RUNNING',
-                    timestamp: data.timestamp || new Date().toLocaleTimeString('vi-VN')
-                });
-                broadcastToAll({ type: 'BOT_COUNT_UPDATED', count: activeBots.size });
-            }
-
-            wss.clients.forEach((client) => {
-                if (client !== ws && client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify({ type: 'BROADCAST', data }));
-                }
-            });
         } catch (e) {
-            console.error('[WS ERROR]: Lỗi xử lý message', e);
+            console.error('[WS ERROR]:', e);
         }
-    });
-
-    ws.on('close', () => {
-        if (ws.slaveId && activeSlaves.has(ws.slaveId)) {
-            activeSlaves.delete(ws.slaveId);
-        }
-        console.log('[WS] Slave Client ngắt kết nối.');
     });
 });
 
-// ==========================================
-// ⚡ REALTIME ENGINE 2: SOCKET.IO (DASHBOARD LATENCY & EVENT SYNC)
-// ==========================================
 io.on('connection', (socket) => {
     console.log(`[Socket.IO] Admin Panel kết nối: ${socket.id}`);
-
-    socket.on('latency_ping', (timestamp) => {
-        socket.emit('latency_pong', timestamp);
-    });
-
-    socket.on('toggle_bot', (botId) => {
-        if (activeBots.has(botId)) {
-            const bot = activeBots.get(botId);
-            bot.status = bot.status === 'RUNNING' ? 'STOPPED' : 'RUNNING';
-            io.emit('bot_updated', Array.from(activeBots.values()));
-        }
-    });
-
-    socket.on('disconnect', () => {
-        console.log(`[Socket.IO] Admin Panel ngắt kết nối: ${socket.id}`);
-    });
+    socket.on('latency_ping', (timestamp) => socket.emit('latency_pong', timestamp));
+    socket.on('disconnect', () => console.log(`[Socket.IO] Ngắt kết nối: ${socket.id}`));
 });
 
 // Heartbeat kiểm tra kết nối đứt đối với Native WS
