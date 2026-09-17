@@ -810,7 +810,6 @@
 
     <!-- JavaScript Gộp Hoàn Chỉnh -->
     <script>
-        // Tự động gán WebSocket Endpoint mặc định là wss://hendy-hades-cloud-production.up.railway.app
         window.addEventListener('DOMContentLoaded', () => {
             const wsInput = document.getElementById('wsEndpoint');
             if (wsInput && !wsInput.value) {
@@ -905,7 +904,6 @@
             };
         }
 
-        // Hàm render toàn bộ danh sách người dùng ban đầu
         function renderUsersTable(usersList) {
             const tbody = document.getElementById('systemUsersTableBody');
             if (!tbody) return;
@@ -917,7 +915,6 @@
             usersList.forEach(u => addTelegramUserToTable(u, false));
         }
 
-        // Hàm thêm/cập nhật 1 người dùng Telegram vào Bảng khi nhấn /start
         function addTelegramUserToTable(user, highlight = true) {
             const tbody = document.getElementById('systemUsersTableBody');
             if (!tbody) return;
@@ -957,7 +954,6 @@
 
             tbody.prepend(tr);
 
-            // Cập nhật số lượng khách hàng lên ô Dashboard
             const totalUsersElem = document.getElementById('dashTotalUsers');
             if (totalUsersElem) {
                 totalUsersElem.innerText = tbody.querySelectorAll('tr').length;
@@ -1031,10 +1027,10 @@
             }
         });
 
-        // Nút Kích Hoạt Tăng Mắt & Tương Tác Live Stream
+        // Nút Kích Hoạt Tăng Mắt & Tương Tác Live Stream (Đã sửa lỗi tách TikTok Username & Alert undefined)
         document.getElementById('startLiveBoostBtn')?.addEventListener('click', async () => {
             const platform = document.getElementById('livePlatform').value;
-            const targetInput = document.getElementById('liveTargetInput').value.trim();
+            let targetInput = document.getElementById('liveTargetInput').value.trim();
             const targetViewers = parseInt(document.getElementById('targetViewersInput').value) || 100;
 
             if (!targetInput) {
@@ -1042,9 +1038,19 @@
                 return;
             }
 
+            if (platform === 'TikTok') {
+                if (targetInput.includes('tiktok.com/')) {
+                    const match = targetInput.match(/@([a-zA-Z0-9_.-]+)/);
+                    if (match && match[1]) {
+                        targetInput = match[1];
+                    }
+                }
+                targetInput = targetInput.replace('@', '').split('?')[0].trim();
+            }
+
             let payload = { platform, targetViewers };
             if (platform === 'TikTok') {
-                payload.username = targetInput.replace('@', '');
+                payload.username = targetInput;
             } else {
                 payload.targetUrl = targetInput;
             }
@@ -1057,9 +1063,9 @@
                 });
                 const result = await response.json();
                 if (result.success) {
-                    addTerminalLog('LIVE', `Khởi chạy tiến trình tăng mắt ${platform} (Session ID: ${result.sessionId})`, '#00ff66');
+                    addTerminalLog('LIVE', `Khởi chạy tiến trình tăng mắt ${platform} cho @${targetInput} (Session ID: ${result.sessionId})`, '#00ff66');
                 } else {
-                    alert('Lỗi: ' + result.error);
+                    alert('Lỗi: ' + (result.error || result.message || 'Phòng Live không tồn tại hoặc đã kết thúc!'));
                 }
             } catch (err) {
                 console.error(err);
